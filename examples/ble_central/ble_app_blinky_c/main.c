@@ -740,6 +740,17 @@ static void advertising_init(void)
     APP_ERROR_CHECK(err_code);
 }
 
+/**@brief Function for starting advertising.
+ */
+static void advertising_start(void)
+{
+    ret_code_t           err_code;
+
+    err_code = sd_ble_gap_adv_start(m_adv_handle, APP_BLE_CONN_CFG_TAG);
+    APP_ERROR_CHECK(err_code);
+}
+
+
 /* victor add 1 end */
 
 
@@ -762,8 +773,10 @@ int main(void)
     advertising_init();
 	
     // Start execution.
-    NRF_LOG_INFO("Blinky CENTRAL example started.");
+    NRF_LOG_INFO("Blinky 1 slave and 6 CENTRAL example started.");
+	
     scan_start();
+		advertising_start();
 
     // Turn on the LED to signal scanning.
     bsp_board_led_on(CENTRAL_SCANNING_LED);
