@@ -518,7 +518,7 @@ static void idle_state_handle(void)
  *          device including the device name, appearance, and the preferred connection parameters.
  */
 
-#define DEVICE_NAME                     "Nordic_Blinky"  
+#define DEVICE_NAME                     "Smart_Phone_Blinky"  
 #define MIN_CONN_INTERVAL               MSEC_TO_UNITS(100, UNIT_1_25_MS)        /**< Minimum acceptable connection interval (0.5 seconds). */
 #define MAX_CONN_INTERVAL               MSEC_TO_UNITS(200, UNIT_1_25_MS)        /**< Maximum acceptable connection interval (1 second). */
 #define SLAVE_LATENCY                   0                                       /**< Slave latency. */
