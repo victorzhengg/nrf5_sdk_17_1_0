@@ -46,20 +46,26 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
+
 #include "nrf_sdh.h"
 #include "nrf_sdh_ble.h"
 #include "nrf_sdh_soc.h"
+
 #include "nrf_pwr_mgmt.h"
 #include "app_timer.h"
 #include "boards.h"
 #include "bsp.h"
 #include "bsp_btn_ble.h"
+
 #include "ble.h"
 #include "ble_hci.h"
 #include "ble_advertising.h"
 #include "ble_conn_params.h"
 #include "ble_db_discovery.h"
+#include "ble_lbs.h"
 #include "ble_lbs_c.h"
+
+#include "nrf_ble_qwr.h"
 #include "nrf_ble_gatt.h"
 #include "nrf_ble_scan.h"
 
@@ -603,6 +609,137 @@ static void conn_params_init(void)
 }
 
 
+
+/**@brief Function for handling Queued Write Module errors.
+ *
+ * @details A pointer to this function will be passed to each service which may need to inform the
+ *          application about an error.
+ *
+ * @param[in]   nrf_error   Error code containing information about what went wrong.
+ */
+static void nrf_qwr_error_handler(uint32_t nrf_error)
+{
+    APP_ERROR_HANDLER(nrf_error);
+}
+
+/**@brief Function for handling write events to the LED characteristic.
+ *
+ * @param[in] p_lbs     Instance of LED Button Service to which the write applies.
+ * @param[in] led_state Written/desired state of the LED.
+ */
+static void led_write_handler(uint16_t conn_handle, ble_lbs_t * p_lbs, uint8_t led_state)
+{
+    if (led_state)
+    {
+        bsp_board_led_on(LEDBUTTON_LED);
+        NRF_LOG_INFO("Received LED ON!");
+    }
+    else
+    {
+        bsp_board_led_off(LEDBUTTON_LED);
+        NRF_LOG_INFO("Received LED OFF!");
+    }
+}
+
+
+/**@brief Function for initializing services that will be used by the application.
+ */
+NRF_BLE_QWR_DEF(m_qwr);
+BLE_LBS_DEF(m_lbs);
+
+static void services_init(void)
+{
+    ret_code_t         err_code;
+    ble_lbs_init_t     init     = {0};
+    nrf_ble_qwr_init_t qwr_init = {0};
+
+    // Initialize Queued Write Module.
+    qwr_init.error_handler = nrf_qwr_error_handler;
+
+    err_code = nrf_ble_qwr_init(&m_qwr, &qwr_init);
+    APP_ERROR_CHECK(err_code);
+
+    // Initialize LBS.
+    init.led_write_handler = led_write_handler;
+
+    err_code = ble_lbs_init(&m_lbs, &init);
+    APP_ERROR_CHECK(err_code);
+}
+
+
+
+static uint8_t m_adv_handle = BLE_GAP_ADV_SET_HANDLE_NOT_SET;                   /**< Advertising handle used to identify an advertising set. */
+static uint8_t m_enc_advdata[BLE_GAP_ADV_SET_DATA_SIZE_MAX];                    /**< Buffer for storing an encoded advertising set. */
+static uint8_t m_enc_scan_response_data[BLE_GAP_ADV_SET_DATA_SIZE_MAX];         /**< Buffer for storing an encoded scan data. */
+
+/**@brief Struct that contains pointers to the encoded advertising data. */
+static ble_gap_adv_data_t m_adv_data =
+{
+    .adv_data =
+    {
+        .p_data = m_enc_advdata,
+        .len    = BLE_GAP_ADV_SET_DATA_SIZE_MAX
+    },
+    .scan_rsp_data =
+    {
+        .p_data = m_enc_scan_response_data,
+        .len    = BLE_GAP_ADV_SET_DATA_SIZE_MAX
+
+    }
+};
+
+#define APP_ADV_INTERVAL                64                                      /**< The advertising interval (in units of 0.625 ms; this value corresponds to 40 ms). */
+#define APP_ADV_DURATION                BLE_GAP_ADV_TIMEOUT_GENERAL_UNLIMITED   /**< The advertising time-out (in units of seconds). When set to 0, we will never time out. */
+
+
+/**@brief Function for initializing the Advertising functionality.
+ *
+ * @details Encodes the required advertising data and passes it to the stack.
+ *          Also builds a structure to be passed to the stack when starting advertising.
+ */
+
+static void advertising_init(void)
+{
+    ret_code_t    err_code;
+    ble_advdata_t advdata;
+    ble_advdata_t srdata;
+
+    ble_uuid_t adv_uuids[] = {{LBS_UUID_SERVICE, m_lbs.uuid_type}};
+
+    // Build and set advertising data.
+    memset(&advdata, 0, sizeof(advdata));
+
+    advdata.name_type          = BLE_ADVDATA_FULL_NAME;
+    advdata.include_appearance = true;
+    advdata.flags              = BLE_GAP_ADV_FLAGS_LE_ONLY_GENERAL_DISC_MODE;
+
+
+    memset(&srdata, 0, sizeof(srdata));
+    srdata.uuids_complete.uuid_cnt = sizeof(adv_uuids) / sizeof(adv_uuids[0]);
+    srdata.uuids_complete.p_uuids  = adv_uuids;
+
+    err_code = ble_advdata_encode(&advdata, m_adv_data.adv_data.p_data, &m_adv_data.adv_data.len);
+    APP_ERROR_CHECK(err_code);
+
+    err_code = ble_advdata_encode(&srdata, m_adv_data.scan_rsp_data.p_data, &m_adv_data.scan_rsp_data.len);
+    APP_ERROR_CHECK(err_code);
+
+    ble_gap_adv_params_t adv_params;
+
+    // Set advertising parameters.
+    memset(&adv_params, 0, sizeof(adv_params));
+
+    adv_params.primary_phy     = BLE_GAP_PHY_1MBPS;
+    adv_params.duration        = APP_ADV_DURATION;
+    adv_params.properties.type = BLE_GAP_ADV_TYPE_CONNECTABLE_SCANNABLE_UNDIRECTED;
+    adv_params.p_peer_addr     = NULL;
+    adv_params.filter_policy   = BLE_GAP_ADV_FP_ANY;
+    adv_params.interval        = APP_ADV_INTERVAL;
+
+    err_code = sd_ble_gap_adv_set_configure(&m_adv_handle, &m_adv_data, &adv_params);
+    APP_ERROR_CHECK(err_code);
+}
+
 /* victor add 1 end */
 
 
@@ -621,7 +758,9 @@ int main(void)
 	  conn_params_init();
     db_discovery_init();
     lbs_c_init();
-
+    services_init();
+    advertising_init();
+	
     // Start execution.
     NRF_LOG_INFO("Blinky CENTRAL example started.");
     scan_start();
