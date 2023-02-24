@@ -106,7 +106,7 @@ static char const m_target_periph_name[] = "Nordic_Blinky";     /**< Name of the
 /* victor add 2 start*/
 BLE_LBS_DEF(m_peripheral_lbs);
 
-static uint16_t m_conn_handle = BLE_CONN_HANDLE_INVALID;                        /**< Handle of the current connection. */
+static uint16_t m_peripheral_conn_handle = BLE_CONN_HANDLE_INVALID;                        /**< Handle of the current connection. */
 
 
 static void peripheral_advertising_start(void);
@@ -220,12 +220,12 @@ static void peripheral_ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_con
     {
         case BLE_GAP_EVT_CONNECTED:
             NRF_LOG_INFO("peripheral Connected");
-            m_conn_handle = p_ble_evt->evt.gap_evt.conn_handle;
+            m_peripheral_conn_handle = p_ble_evt->evt.gap_evt.conn_handle;
             break;
 
         case BLE_GAP_EVT_DISCONNECTED:
             NRF_LOG_INFO("peripheral Disconnected");
-            m_conn_handle = BLE_CONN_HANDLE_INVALID;
+            m_peripheral_conn_handle = BLE_CONN_HANDLE_INVALID;
             peripheral_advertising_start();
             break;
 
@@ -657,7 +657,7 @@ static void peripheral_on_conn_params_evt(ble_conn_params_evt_t * p_evt)
 
     if (p_evt->evt_type == BLE_CONN_PARAMS_EVT_FAILED)
     {
-        err_code = sd_ble_gap_disconnect(m_conn_handle, BLE_HCI_CONN_INTERVAL_UNACCEPTABLE);
+        err_code = sd_ble_gap_disconnect(m_peripheral_conn_handle, BLE_HCI_CONN_INTERVAL_UNACCEPTABLE);
         APP_ERROR_CHECK(err_code);
     }
 }
@@ -705,16 +705,16 @@ static void peripheral_conn_params_init(void)
  * @param[in] p_lbs     Instance of LED Button Service to which the write applies.
  * @param[in] led_state Written/desired state of the LED.
  */
-static void led_write_handler(uint16_t conn_handle, ble_lbs_t * p_lbs, uint8_t led_state)
+static void peripheral_led_write_handler(uint16_t conn_handle, ble_lbs_t * p_lbs, uint8_t led_state)
 {
     if (led_state)
     {
-        bsp_board_led_on(LEDBUTTON_LED);
+        bsp_board_led_on(BSP_BOARD_LED_3);
         NRF_LOG_INFO("Received LED ON!");
     }
     else
     {
-        bsp_board_led_off(LEDBUTTON_LED);
+        bsp_board_led_off(BSP_BOARD_LED_3);
         NRF_LOG_INFO("Received LED OFF!");
     }
 }
@@ -730,7 +730,7 @@ static void peripheral_services_init(void)
     ble_lbs_init_t     init     = {0};
 
     // Initialize LBS.
-    init.led_write_handler = led_write_handler;
+    init.led_write_handler = peripheral_led_write_handler;
 
     err_code = ble_lbs_init(&m_peripheral_lbs, &init);
     APP_ERROR_CHECK(err_code);
