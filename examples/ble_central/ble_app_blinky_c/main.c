@@ -93,13 +93,21 @@
 #define APP_BLE_CONN_CFG_TAG            1                                   /**< A tag identifying the SoftDevice BLE configuration. */
 #define APP_BLE_OBSERVER_PRIO           3                                   /**< Application's BLE observer priority. You shouldn't need to modify this value. */
 
-NRF_BLE_SCAN_DEF(m_scan);                                       /**< Scanning module instance. */
-BLE_LBS_C_DEF(m_ble_lbs_c);                                     /**< Main structure used by the LBS client module. */
-NRF_BLE_GATT_DEF(m_gatt);                                       /**< GATT module instance. */
-BLE_DB_DISCOVERY_DEF(m_db_disc);                                /**< DB discovery module instance. */
-NRF_BLE_GQ_DEF(m_ble_gatt_queue,                                /**< BLE GATT Queue instance. */
+NRF_BLE_SCAN_DEF(m_scan);                                                      /**< Scanning module instance. */
+
+
+#define CENTRAL_INSTANCE_INDEX_INVALID        0xFFFF
+BLE_LBS_C_ARRAY_DEF(m_central_ble_lbs_c, NRF_SDH_BLE_CENTRAL_LINK_COUNT);      /**< Main structure used by the LBS client module. */
+
+BLE_DB_DISCOVERY_ARRAY_DEF(m_central_db_disc, NRF_SDH_BLE_CENTRAL_LINK_COUNT); /**< DB discovery module instance. */
+
+NRF_BLE_GQ_DEF(m_central_ble_gatt_queue,                                       /**< BLE GATT Queue instance. */
                NRF_SDH_BLE_CENTRAL_LINK_COUNT,
                NRF_BLE_GQ_QUEUE_SIZE);
+
+
+NRF_BLE_GATT_DEF(m_gatt);                                       /**< GATT module instance. */
+
 
 static char const m_target_periph_name[] = "Nordic_Blinky";     /**< Name of the device we try to connect to. This name is searched in the scan report data*/
 
@@ -110,6 +118,80 @@ static uint16_t m_peripheral_conn_handle = BLE_CONN_HANDLE_INVALID;             
 
 
 static void peripheral_advertising_start(void);
+
+static uint16_t central_get_lbs_instance(ble_lbs_c_t* instance_array)
+{
+		ble_lbs_c_t* p_instance;
+	  uint16_t index;
+	
+		p_instance = instance_array;
+		for(index=0;index<NRF_SDH_BLE_CENTRAL_LINK_COUNT;index++)
+		{
+				if(p_instance->conn_handle == BLE_CONN_HANDLE_INVALID)
+				{
+						break;
+				}
+				else
+				{	
+						p_instance++;
+				}
+		}
+		
+		if(index >= NRF_SDH_BLE_CENTRAL_LINK_COUNT)
+		{
+				index = CENTRAL_INSTANCE_INDEX_INVALID;
+		}
+		
+		return index;
+}
+
+static void central_free_lbs_instance(ble_lbs_c_t* instance_array, uint16_t handle)
+{
+		ble_lbs_c_t* p_instance;
+		uint16_t index;
+	
+		p_instance = instance_array;
+	
+		for(index=0;index<NRF_SDH_BLE_CENTRAL_LINK_COUNT;index++)
+		{
+				if(p_instance->conn_handle == handle)
+				{
+						p_instance->conn_handle = BLE_CONN_HANDLE_INVALID;
+					  break;
+				}
+				else
+				{	
+						p_instance++;
+				}
+		}
+}
+
+static uint16_t central_find_lbs_instance(ble_lbs_c_t* instance_array, uint16_t handle)
+{
+		ble_lbs_c_t* p_instance;
+		uint16_t index;
+	
+		p_instance = instance_array;
+	
+		for(index=0;index<NRF_SDH_BLE_CENTRAL_LINK_COUNT;index++)
+		{
+				if(p_instance->conn_handle == handle)
+				{
+					  break;
+				}
+				else
+				{	
+						p_instance++;
+				}
+		}
+		
+		if(index >= NRF_SDH_BLE_CENTRAL_LINK_COUNT)
+		{
+				index = CENTRAL_INSTANCE_INDEX_INVALID;
+		}
+		return index;
+}
+
 /* victor add 2 end*/
 
 /**@brief Function to handle asserts in the SoftDevice.
@@ -173,7 +255,7 @@ static void central_lbs_c_evt_handler(ble_lbs_c_t * p_lbs_c, ble_lbs_c_evt_t * p
         {
             ret_code_t err_code;
 
-            err_code = ble_lbs_c_handles_assign(&m_ble_lbs_c,
+            err_code = ble_lbs_c_handles_assign(p_lbs_c,
                                                 p_lbs_c_evt->conn_handle,
                                                 &p_lbs_c_evt->params.peer_db);
             NRF_LOG_INFO("LED Button service discovered on conn_handle 0x%x.", p_lbs_c_evt->conn_handle);
@@ -280,6 +362,7 @@ static void peripheral_ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_con
 static void central_ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context)
 {
     ret_code_t err_code;
+		uint16_t index;
 
     // For readability.
     ble_gap_evt_t const * p_gap_evt = &p_ble_evt->evt.gap_evt;
@@ -291,12 +374,19 @@ static void central_ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_contex
         case BLE_GAP_EVT_CONNECTED:
         {
             NRF_LOG_INFO("central Connected.");
-            err_code = ble_lbs_c_handles_assign(&m_ble_lbs_c, p_gap_evt->conn_handle, NULL);
-            APP_ERROR_CHECK(err_code);
+					
+						index = central_get_lbs_instance(m_central_ble_lbs_c);
+						NRF_LOG_INFO("central_get_lbs_instance return free instance index:%d", index);
+					
+					  if(index != CENTRAL_INSTANCE_INDEX_INVALID)
+						{
+								err_code = ble_lbs_c_handles_assign(&m_central_ble_lbs_c[index], p_gap_evt->conn_handle, NULL);
+								APP_ERROR_CHECK(err_code);
 
-            err_code = ble_db_discovery_start(&m_db_disc, p_gap_evt->conn_handle);
-            APP_ERROR_CHECK(err_code);
-
+								err_code = ble_db_discovery_start(&m_central_db_disc[index], p_gap_evt->conn_handle);
+								APP_ERROR_CHECK(err_code);
+						}
+					
             // Update LEDs status, and check if we should be looking for more
             // peripherals to connect to.
             bsp_board_led_on(CENTRAL_CONNECTED_LED);
@@ -307,6 +397,7 @@ static void central_ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_contex
         // the LEDs status and start scanning again.
         case BLE_GAP_EVT_DISCONNECTED:
         {
+						central_free_lbs_instance(m_central_ble_lbs_c, p_gap_evt->conn_handle);
             NRF_LOG_INFO("central Disconnected.");
             central_scan_start();
         } break;
@@ -391,13 +482,18 @@ static void central_lbs_c_init(void)
 {
     ret_code_t       err_code;
     ble_lbs_c_init_t lbs_c_init_obj;
+		uint16_t index;
 
-    lbs_c_init_obj.evt_handler   = central_lbs_c_evt_handler;
-    lbs_c_init_obj.p_gatt_queue  = &m_ble_gatt_queue;
-    lbs_c_init_obj.error_handler = lbs_error_handler;
+		lbs_c_init_obj.evt_handler   = central_lbs_c_evt_handler;
+		lbs_c_init_obj.p_gatt_queue  = &m_central_ble_gatt_queue;
+		lbs_c_init_obj.error_handler = lbs_error_handler;
 
-    err_code = ble_lbs_c_init(&m_ble_lbs_c, &lbs_c_init_obj);
-    APP_ERROR_CHECK(err_code);
+		for(index=0;index<NRF_SDH_BLE_CENTRAL_LINK_COUNT;index++)
+		{
+				err_code = ble_lbs_c_init(&m_central_ble_lbs_c[index], &lbs_c_init_obj);
+				APP_ERROR_CHECK(err_code);			
+		}
+
 }
 
 
@@ -435,21 +531,26 @@ static void ble_stack_init(void)
 static void button_event_handler(uint8_t pin_no, uint8_t button_action)
 {
     ret_code_t err_code;
+		uint16_t index;
 
     switch (pin_no)
     {
         case LEDBUTTON_BUTTON_PIN:
-            err_code = ble_lbs_led_status_send(&m_ble_lbs_c, button_action);
-            if (err_code != NRF_SUCCESS &&
-                err_code != BLE_ERROR_INVALID_CONN_HANDLE &&
-                err_code != NRF_ERROR_INVALID_STATE)
-            {
-                APP_ERROR_CHECK(err_code);
-            }
-            if (err_code == NRF_SUCCESS)
-            {
-                NRF_LOG_INFO("LBS write LED state %d", button_action);
-            }
+						for(index=0;index<NRF_SDH_BLE_CENTRAL_LINK_COUNT;index++)
+						{
+								err_code = ble_lbs_led_status_send(&m_central_ble_lbs_c[index], button_action);
+								if (err_code != NRF_SUCCESS &&
+										err_code != BLE_ERROR_INVALID_CONN_HANDLE &&
+										err_code != NRF_ERROR_INVALID_STATE)
+								{
+										APP_ERROR_CHECK(err_code);
+								}
+								if (err_code == NRF_SUCCESS)
+								{
+									NRF_LOG_INFO("LBS write LED state %d to handle:%d", button_action,
+									             m_central_ble_lbs_c[index].conn_handle);
+								}							
+						}				
             break;
 
         default:
@@ -508,7 +609,15 @@ static void buttons_init(void)
  */
 static void central_db_disc_handler(ble_db_discovery_evt_t * p_evt)
 {
-    ble_lbs_on_db_disc_evt(&m_ble_lbs_c, p_evt);
+		uint16_t instance_index;
+		instance_index = central_find_lbs_instance(m_central_ble_lbs_c, p_evt->conn_handle);
+	
+		NRF_LOG_INFO("central_find_lbs_instance return instance index:%d", instance_index);
+	
+		if(instance_index != CENTRAL_INSTANCE_INDEX_INVALID)
+		{
+				ble_lbs_on_db_disc_evt(&m_central_ble_lbs_c[instance_index], p_evt);
+		}
 }
 
 
@@ -521,7 +630,7 @@ static void central_db_discovery_init(void)
     memset(&db_init, 0, sizeof(db_init));
 
     db_init.evt_handler  = central_db_disc_handler;
-    db_init.p_gatt_queue = &m_ble_gatt_queue;
+    db_init.p_gatt_queue = &m_central_ble_gatt_queue;
 
     ret_code_t err_code = ble_db_discovery_init(&db_init);
     APP_ERROR_CHECK(err_code);
