@@ -160,7 +160,7 @@ static void central_scan_start(void)
 
 /**@brief Handles events coming from the LED Button central module.
  */
-static void lbs_c_evt_handler(ble_lbs_c_t * p_lbs_c, ble_lbs_c_evt_t * p_lbs_c_evt)
+static void central_lbs_c_evt_handler(ble_lbs_c_t * p_lbs_c, ble_lbs_c_evt_t * p_lbs_c_evt)
 {
     switch (p_lbs_c_evt->evt_type)
     {
@@ -301,7 +301,7 @@ static void central_lbs_c_init(void)
     ret_code_t       err_code;
     ble_lbs_c_init_t lbs_c_init_obj;
 
-    lbs_c_init_obj.evt_handler   = lbs_c_evt_handler;
+    lbs_c_init_obj.evt_handler   = central_lbs_c_evt_handler;
     lbs_c_init_obj.p_gatt_queue  = &m_ble_gatt_queue;
     lbs_c_init_obj.error_handler = lbs_error_handler;
 
@@ -372,7 +372,7 @@ static void button_event_handler(uint8_t pin_no, uint8_t button_action)
  *
  * @param[in]   p_scan_evt   Scanning event.
  */
-static void scan_evt_handler(scan_evt_t const * p_scan_evt)
+static void central_scan_evt_handler(scan_evt_t const * p_scan_evt)
 {
     ret_code_t err_code;
 
@@ -415,7 +415,7 @@ static void buttons_init(void)
  *
  * @param[in] p_event  Pointer to the database discovery event.
  */
-static void db_disc_handler(ble_db_discovery_evt_t * p_evt)
+static void central_db_disc_handler(ble_db_discovery_evt_t * p_evt)
 {
     ble_lbs_on_db_disc_evt(&m_ble_lbs_c, p_evt);
 }
@@ -429,7 +429,7 @@ static void central_db_discovery_init(void)
 
     memset(&db_init, 0, sizeof(db_init));
 
-    db_init.evt_handler  = db_disc_handler;
+    db_init.evt_handler  = central_db_disc_handler;
     db_init.p_gatt_queue = &m_ble_gatt_queue;
 
     ret_code_t err_code = ble_db_discovery_init(&db_init);
@@ -476,7 +476,7 @@ static void central_scan_init(void)
     init_scan.connect_if_match = true;
     init_scan.conn_cfg_tag     = APP_BLE_CONN_CFG_TAG;
 
-    err_code = nrf_ble_scan_init(&m_scan, &init_scan, scan_evt_handler);
+    err_code = nrf_ble_scan_init(&m_scan, &init_scan, central_scan_evt_handler);
     APP_ERROR_CHECK(err_code);
 
     // Setting filters for scanning.
@@ -560,7 +560,7 @@ static void peripheral_gap_params_init(void)
  *
  * @param[in] p_evt  Event received from the Connection Parameters Module.
  */
-static void on_conn_params_evt(ble_conn_params_evt_t * p_evt)
+static void peripheral_on_conn_params_evt(ble_conn_params_evt_t * p_evt)
 {
     ret_code_t err_code;
 
@@ -576,7 +576,7 @@ static void on_conn_params_evt(ble_conn_params_evt_t * p_evt)
  *
  * @param[in] nrf_error  Error code containing information about what went wrong.
  */
-static void conn_params_error_handler(uint32_t nrf_error)
+static void peripheral_conn_params_error_handler(uint32_t nrf_error)
 {
     APP_ERROR_HANDLER(nrf_error);
 }
@@ -601,8 +601,8 @@ static void peripheral_conn_params_init(void)
     cp_init.max_conn_params_update_count   = MAX_CONN_PARAMS_UPDATE_COUNT;
     cp_init.start_on_notify_cccd_handle    = BLE_GATT_HANDLE_INVALID;
     cp_init.disconnect_on_fail             = false;
-    cp_init.evt_handler                    = on_conn_params_evt;
-    cp_init.error_handler                  = conn_params_error_handler;
+    cp_init.evt_handler                    = peripheral_on_conn_params_evt;
+    cp_init.error_handler                  = peripheral_conn_params_error_handler;
 
     err_code = ble_conn_params_init(&cp_init);
     APP_ERROR_CHECK(err_code);
