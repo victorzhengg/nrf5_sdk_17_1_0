@@ -146,7 +146,7 @@ static void leds_init(void)
 
 /**@brief Function to start scanning.
  */
-static void scan_start(void)
+static void central_scan_start(void)
 {
     ret_code_t err_code;
 
@@ -237,7 +237,7 @@ static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context)
         case BLE_GAP_EVT_DISCONNECTED:
         {
             NRF_LOG_INFO("Disconnected.");
-            scan_start();
+            central_scan_start();
         } break;
 
         case BLE_GAP_EVT_TIMEOUT:
@@ -423,7 +423,7 @@ static void db_disc_handler(ble_db_discovery_evt_t * p_evt)
 
 /**@brief Database discovery initialization.
  */
-static void db_discovery_init(void)
+static void central_db_discovery_init(void)
 {
     ble_db_discovery_init_t db_init;
 
@@ -466,7 +466,7 @@ static void power_management_init(void)
 }
 
 
-static void scan_init(void)
+static void central_scan_init(void)
 {
     ret_code_t          err_code;
     nrf_ble_scan_init_t init_scan;
@@ -524,7 +524,7 @@ static void idle_state_handle(void)
 #define SLAVE_LATENCY                   0                                       /**< Slave latency. */
 #define CONN_SUP_TIMEOUT                MSEC_TO_UNITS(4000, UNIT_10_MS) 
 
-static void gap_params_init(void)
+static void peripheral_gap_params_init(void)
 {
     ret_code_t              err_code;
     ble_gap_conn_params_t   gap_conn_params;
@@ -588,7 +588,7 @@ static void conn_params_error_handler(uint32_t nrf_error)
 #define NEXT_CONN_PARAMS_UPDATE_DELAY   APP_TIMER_TICKS(5000)                   /**< Time between each call to sd_ble_gap_conn_param_update after the first call (5 seconds). */
 #define MAX_CONN_PARAMS_UPDATE_COUNT    3       
 
-static void conn_params_init(void)
+static void peripheral_conn_params_init(void)
 {
     ret_code_t             err_code;
     ble_conn_params_init_t cp_init;
@@ -647,7 +647,7 @@ static void led_write_handler(uint16_t conn_handle, ble_lbs_t * p_lbs, uint8_t l
 NRF_BLE_QWR_DEF(m_qwr);
 BLE_LBS_DEF(m_lbs);
 
-static void services_init(void)
+static void peripheral_services_init(void)
 {
     ret_code_t         err_code;
     ble_lbs_init_t     init     = {0};
@@ -698,7 +698,7 @@ static ble_gap_adv_data_t m_adv_data =
  *          Also builds a structure to be passed to the stack when starting advertising.
  */
 
-static void advertising_init(void)
+static void peripheral_advertising_init(void)
 {
     ret_code_t    err_code;
     ble_advdata_t advdata;
@@ -742,7 +742,7 @@ static void advertising_init(void)
 
 /**@brief Function for starting advertising.
  */
-static void advertising_start(void)
+static void peripheral_advertising_start(void)
 {
     ret_code_t           err_code;
 
@@ -763,20 +763,20 @@ int main(void)
     buttons_init();
     power_management_init();
     ble_stack_init();
-    scan_init();
-	  gap_params_init();
+    central_scan_init();
+	  peripheral_gap_params_init();
     gatt_init();
-	  conn_params_init();
-    db_discovery_init();
+	  peripheral_conn_params_init();
+    central_db_discovery_init();
     lbs_c_init();
-    services_init();
-    advertising_init();
+    peripheral_services_init();
+    peripheral_advertising_init();
 	
     // Start execution.
     NRF_LOG_INFO("Blinky 1 slave and 6 CENTRAL example started.");
 	
-    scan_start();
-		advertising_start();
+    central_scan_start();
+		peripheral_advertising_start();
 
     // Turn on the LED to signal scanning.
     bsp_board_led_on(CENTRAL_SCANNING_LED);
