@@ -1088,11 +1088,6 @@
               <FileType>1</FileType>
               <FilePath>..\..\..\..\..\..\components\ble\common\ble_conn_params.c</FilePath>
             </File>
-            <File>
-              <FileName>nrf_ble_qwr.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\..\..\..\components\ble\nrf_ble_qwr\nrf_ble_qwr.c</FilePath>
-            </File>
           </Files>
         </Group>
         <Group>
@@ -4683,11 +4678,6 @@
               <FileName>ble_conn_params.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\..\..\..\components\ble\common\ble_conn_params.c</FilePath>
-            </File>
-            <File>
-              <FileName>nrf_ble_qwr.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\..\..\..\components\ble\nrf_ble_qwr\nrf_ble_qwr.c</FilePath>
             </File>
           </Files>
         </Group>
