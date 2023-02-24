@@ -296,7 +296,7 @@ static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context)
 
 /**@brief LED Button client initialization.
  */
-static void lbs_c_init(void)
+static void central_lbs_c_init(void)
 {
     ret_code_t       err_code;
     ble_lbs_c_init_t lbs_c_init_obj;
@@ -768,7 +768,7 @@ int main(void)
     gatt_init();
 	  peripheral_conn_params_init();
     central_db_discovery_init();
-    lbs_c_init();
+    central_lbs_c_init();
     peripheral_services_init();
     peripheral_advertising_init();
 	
