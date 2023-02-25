@@ -110,6 +110,11 @@ NRF_BLE_GATT_DEF(m_gatt);                                       /**< GATT module
 
 
 static char const m_target_periph_name[] = "Nordic_Blinky";     /**< Name of the device we try to connect to. This name is searched in the scan report data*/
+static uint16_t m_central_connect_cnt = 0;
+
+
+
+
 
 /* victor add 2 start*/
 BLE_LBS_DEF(m_peripheral_lbs);
@@ -386,7 +391,15 @@ static void central_ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_contex
 								err_code = ble_db_discovery_start(&m_central_db_disc[index], p_gap_evt->conn_handle);
 								APP_ERROR_CHECK(err_code);
 						}
-					
+					   
+						m_central_connect_cnt++;
+						NRF_LOG_INFO("total connected peripheral device is %d.", m_central_connect_cnt);
+						if(m_central_connect_cnt < NRF_SDH_BLE_CENTRAL_LINK_COUNT)
+						{
+								central_scan_start();
+								NRF_LOG_INFO("re-start the scan");
+						}
+						
             // Update LEDs status, and check if we should be looking for more
             // peripherals to connect to.
             bsp_board_led_on(CENTRAL_CONNECTED_LED);
@@ -399,6 +412,8 @@ static void central_ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_contex
         {
 						central_free_lbs_instance(m_central_ble_lbs_c, p_gap_evt->conn_handle);
             NRF_LOG_INFO("central Disconnected.");
+						m_central_connect_cnt--;
+						NRF_LOG_INFO("total connected peripheral device is %d.", m_central_connect_cnt);
             central_scan_start();
         } break;
 
