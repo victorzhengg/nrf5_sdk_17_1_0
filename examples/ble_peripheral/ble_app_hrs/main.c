@@ -214,6 +214,10 @@ void advertising_start(bool erase_bonds)
  */
 static void pm_evt_handler(pm_evt_t const * p_evt)
 {
+	  pm_peer_id_t            peer_id;
+		pm_peer_data_bonding_t  bonding_data = {0};
+		ret_code_t              ret;
+	
     pm_handler_on_pm_evt(p_evt);
     pm_handler_disconnect_on_sec_failure(p_evt);
     pm_handler_flash_clean(p_evt);
@@ -223,7 +227,27 @@ static void pm_evt_handler(pm_evt_t const * p_evt)
         case PM_EVT_PEERS_DELETE_SUCCEEDED:
             advertising_start(false);
             break;
+				
+        case PM_EVT_BONDED_PEER_CONNECTED:
+						NRF_LOG_INFO("p_evt->conn_handle = %d", p_evt->conn_handle) 
+						ret = pm_peer_id_get(p_evt->conn_handle, &peer_id);
+						NRF_LOG_INFO("pm_peer_id_get return %d.", ret);
 
+						if (peer_id != PM_PEER_ID_INVALID)
+						{
+								NRF_LOG_INFO("peer_id = %d", peer_id);
+								ret = pm_peer_data_bonding_load(peer_id, &bonding_data);
+								NRF_LOG_INFO("pm_peer_id_get return %d.", ret);
+								if(ret == NRF_SUCCESS)
+								{
+										NRF_LOG_INFO("own_ltk:");
+										NRF_LOG_HEXDUMP_INFO(bonding_data.own_ltk.enc_info.ltk, bonding_data.own_ltk.enc_info.ltk_len);
+										NRF_LOG_INFO("peer_ltk:");
+										NRF_LOG_HEXDUMP_INFO(bonding_data.peer_ltk.enc_info.ltk, bonding_data.peer_ltk.enc_info.ltk_len);									
+								}
+						}					
+					break;
+				
         default:
             break;
     }
