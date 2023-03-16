@@ -1368,6 +1368,11 @@
                 </FileArmAds>
               </FileOption>
             </File>
+            <File>
+              <FileName>nrfx_pwm.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\..\..\..\modules\nrfx\drivers\src\nrfx_pwm.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -4662,6 +4667,11 @@
                   </Cads>
                 </FileArmAds>
               </FileOption>
+            </File>
+            <File>
+              <FileName>nrfx_pwm.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\..\..\..\modules\nrfx\drivers\src\nrfx_pwm.c</FilePath>
             </File>
           </Files>
         </Group>

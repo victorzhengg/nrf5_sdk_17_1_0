@@ -64,6 +64,47 @@
 #include "nrf_ble_qwr.h"
 #include "nrf_pwr_mgmt.h"
 
+
+
+/*-----------------------------------------------------------------------------*/
+/*victor add*/
+#include "nrf_drv_pwm.h"
+#define PWM0_OUT0                 3 
+#define PWM0_OUT1                 4 
+#define PWM0_OUT2                 26 
+#define PWM0_OUT3                 27 
+
+#define PWM1_OUT0                 28 
+#define PWM1_OUT1                 29 
+#define PWM1_OUT2                 30 
+#define PWM1_OUT3                 31 
+
+
+#define PWM_SEQ_LENGTH 400
+
+static nrf_drv_pwm_t m_pwm0 = NRF_DRV_PWM_INSTANCE(0);
+static nrf_drv_pwm_t m_pwm1 = NRF_DRV_PWM_INSTANCE(1);
+
+static nrf_pwm_values_individual_t m_pwm0_seq_values[PWM_SEQ_LENGTH];
+static nrf_pwm_sequence_t const    m_pwm0_seq =
+{
+    .values.p_individual = m_pwm0_seq_values,
+    .length              = NRF_PWM_VALUES_LENGTH(m_pwm0_seq_values),
+    .repeats             = 0,
+    .end_delay           = 0
+};
+
+static nrf_pwm_values_individual_t m_pwm1_seq_values[400];
+static nrf_pwm_sequence_t const    m_pwm1_seq =
+{
+    .values.p_individual = m_pwm1_seq_values,
+    .length              = NRF_PWM_VALUES_LENGTH(m_pwm1_seq_values),
+    .repeats             = 0,
+    .end_delay           = 0
+};
+/*-----------------------------------------------------------------------------*/
+
+
 #include "nrf_log.h"
 #include "nrf_log_ctrl.h"
 #include "nrf_log_default_backends.h"
@@ -559,7 +600,62 @@ static void idle_state_handle(void)
     }
 }
 
+static void pwm0_handler(nrf_drv_pwm_evt_type_t event_type)
+{
+    if (event_type == NRF_DRV_PWM_EVT_FINISHED)
+    {
+    }
+}
 
+static void pwm1_handler(nrf_drv_pwm_evt_type_t event_type)
+{
+    if (event_type == NRF_DRV_PWM_EVT_FINISHED)
+    {
+    }
+}
+
+static void pwm_init(void)
+{
+	  int index;
+	
+    NRF_LOG_INFO("pwm_init");
+
+    /*
+     * This demo plays back a sequence with different values for individual
+     * channels (LED 1 - LED 4). Only four values are used (one per channel).
+     * Every time the values are loaded into the compare registers, they are
+     * updated in the provided event handler. The values are updated in such
+     * a way that increase and decrease of the light intensity can be observed
+     * continuously on succeeding channels (one second per channel).
+     */
+
+    nrf_drv_pwm_config_t const config0 =
+    {
+        .output_pins =
+        {
+            PWM0_OUT0, // channel 0
+            PWM0_OUT1, // channel 1
+            PWM0_OUT2, // channel 2
+            PWM0_OUT3  // channel 3
+        },
+        .irq_priority = APP_IRQ_PRIORITY_LOWEST,
+        .base_clock   = NRF_PWM_CLK_2MHz,
+        .count_mode   = NRF_PWM_MODE_UP,
+        .top_value    = 500,            //250us period
+        .load_mode    = NRF_PWM_LOAD_INDIVIDUAL,
+        .step_mode    = NRF_PWM_STEP_AUTO
+    };
+    APP_ERROR_CHECK(nrf_drv_pwm_init(&m_pwm0, &config0, pwm0_handler));
+		for(index=0;index<PWM_SEQ_LENGTH;index++)
+		{
+				m_pwm0_seq_values[index].channel_0 = index;
+				m_pwm0_seq_values[index].channel_1 = index;
+				m_pwm0_seq_values[index].channel_2 = index;
+				m_pwm0_seq_values[index].channel_3 = index;
+		}
+    (void)nrf_drv_pwm_simple_playback(&m_pwm0, &m_pwm0_seq, 1,
+                                      NRFX_PWM_FLAG_STOP);
+}
 /**@brief Function for application main entry.
  */
 int main(void)
@@ -576,7 +672,10 @@ int main(void)
     services_init();
     advertising_init();
     conn_params_init();
-
+	
+    /*victor add pwm init*/
+		pwm_init();
+	
     // Start execution.
     NRF_LOG_INFO("Blinky example started.");
     advertising_start();
