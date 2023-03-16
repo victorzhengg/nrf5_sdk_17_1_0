@@ -83,7 +83,7 @@
 #define PWM1_OUT3                 31 
 
 
-#define PWM_SEQ_LENGTH 400
+#define PWM_SEQ_LENGTH 10
 
 static nrf_drv_pwm_t m_pwm0 = NRF_DRV_PWM_INSTANCE(0);
 static nrf_drv_pwm_t m_pwm1 = NRF_DRV_PWM_INSTANCE(1);
@@ -692,9 +692,9 @@ static void pwm_init(void)
             PWM1_OUT3  // channel 3
         },
         .irq_priority = APP_IRQ_PRIORITY_LOWEST,
-        .base_clock   = NRF_PWM_CLK_2MHz,
+        .base_clock   = NRF_PWM_CLK_16MHz,
         .count_mode   = NRF_PWM_MODE_UP,
-        .top_value    = 500,            //250us period
+        .top_value    = 4000,            //250us period
         .load_mode    = NRF_PWM_LOAD_INDIVIDUAL,
         .step_mode    = NRF_PWM_STEP_AUTO
     };
