@@ -69,6 +69,9 @@
 /*-----------------------------------------------------------------------------*/
 /*victor add*/
 #include "nrf_drv_pwm.h"
+#include "nrf_drv_ppi.h"
+#include "nrf_drv_timer.h"
+
 #define PWM0_OUT0                 3 
 #define PWM0_OUT1                 4 
 #define PWM0_OUT2                 26 
@@ -102,6 +105,12 @@ static nrf_pwm_sequence_t const    m_pwm1_seq =
     .repeats             = 0,
     .end_delay           = 0
 };
+
+static nrf_ppi_channel_t m_ppi_channel;
+
+static const nrf_drv_timer_t m_timer0 = NRF_DRV_TIMER_INSTANCE(1);
+
+#define TRIGER_DELAY_PWM0_PWM1          250
 /*-----------------------------------------------------------------------------*/
 
 
@@ -602,33 +611,33 @@ static void idle_state_handle(void)
 
 static void pwm0_handler(nrf_drv_pwm_evt_type_t event_type)
 {
-    if (event_type == NRF_DRV_PWM_EVT_FINISHED)
+    if (event_type == NRF_DRV_PWM_EVT_STOPPED)
     {
+				NRF_LOG_INFO("pwm0_handler: NRF_DRV_PWM_EVT_STOPPED");
+				nrf_pwm_sequence_set(m_pwm0.p_registers, 0, &m_pwm0_seq);
+				
     }
 }
 
 static void pwm1_handler(nrf_drv_pwm_evt_type_t event_type)
 {
-    if (event_type == NRF_DRV_PWM_EVT_FINISHED)
+    if (event_type == NRF_DRV_PWM_EVT_STOPPED)
     {
+				NRF_LOG_INFO("pwm1_handler: NRF_DRV_PWM_EVT_STOPPED");
+				nrf_pwm_sequence_set(m_pwm1.p_registers, 0, &m_pwm1_seq);
+				nrf_drv_timer_enable(&m_timer0);
     }
 }
 
 static void pwm_init(void)
 {
 	  int index;
+		int err_code;
 	
     NRF_LOG_INFO("pwm_init");
 
-    /*
-     * This demo plays back a sequence with different values for individual
-     * channels (LED 1 - LED 4). Only four values are used (one per channel).
-     * Every time the values are loaded into the compare registers, they are
-     * updated in the provided event handler. The values are updated in such
-     * a way that increase and decrease of the light intensity can be observed
-     * continuously on succeeding channels (one second per channel).
-     */
-
+																	/* pwm0 config*/
+    /*-----------------------------------------------------------------------------*/
     nrf_drv_pwm_config_t const config0 =
     {
         .output_pins =
@@ -639,22 +648,122 @@ static void pwm_init(void)
             PWM0_OUT3  // channel 3
         },
         .irq_priority = APP_IRQ_PRIORITY_LOWEST,
-        .base_clock   = NRF_PWM_CLK_2MHz,
+        .base_clock   = NRF_PWM_CLK_16MHz,
         .count_mode   = NRF_PWM_MODE_UP,
-        .top_value    = 500,            //250us period
+        .top_value    = 4000,            //250us period
         .load_mode    = NRF_PWM_LOAD_INDIVIDUAL,
         .step_mode    = NRF_PWM_STEP_AUTO
     };
     APP_ERROR_CHECK(nrf_drv_pwm_init(&m_pwm0, &config0, pwm0_handler));
 		for(index=0;index<PWM_SEQ_LENGTH;index++)
 		{
-				m_pwm0_seq_values[index].channel_0 = index;
-				m_pwm0_seq_values[index].channel_1 = index;
-				m_pwm0_seq_values[index].channel_2 = index;
-				m_pwm0_seq_values[index].channel_3 = index;
+				m_pwm0_seq_values[index].channel_0 = index + 32768;
+				m_pwm0_seq_values[index].channel_1 = index + 32768;
+				m_pwm0_seq_values[index].channel_2 = index + 32768;
+				m_pwm0_seq_values[index].channel_3 = index + 32768;
 		}
-    (void)nrf_drv_pwm_simple_playback(&m_pwm0, &m_pwm0_seq, 1,
-                                      NRFX_PWM_FLAG_STOP);
+		
+		/* set the seq0*/
+		nrf_pwm_sequence_set(m_pwm0.p_registers, 0, &m_pwm0_seq);
+		
+		/* set short between seq0_end and stop*/
+		uint32_t shorts_mask = NRF_PWM_SHORT_SEQEND0_STOP_MASK;
+		nrf_pwm_shorts_set(m_pwm0.p_registers, shorts_mask);
+		
+		/* enable the interrupt stoped*/
+		uint32_t int_mask = NRF_PWM_INT_STOPPED_MASK;
+		// The workaround for nRF52 Anomaly 109 "protects" DMA transfers
+		int_mask |= NRF_PWM_INT_SEQEND0_MASK | NRF_PWM_INT_SEQEND1_MASK;
+		nrf_pwm_int_set(m_pwm0.p_registers, int_mask);
+		nrf_pwm_event_clear(m_pwm0.p_registers, NRF_PWM_EVENT_STOPPED);
+		
+
+		
+		
+		                           /* pwm1 config*/
+		/*-----------------------------------------------------------------------------*/
+    nrf_drv_pwm_config_t const config1 =
+    {
+        .output_pins =
+        {
+            PWM1_OUT0, // channel 0
+            PWM1_OUT1, // channel 1
+            PWM1_OUT2, // channel 2
+            PWM1_OUT3  // channel 3
+        },
+        .irq_priority = APP_IRQ_PRIORITY_LOWEST,
+        .base_clock   = NRF_PWM_CLK_2MHz,
+        .count_mode   = NRF_PWM_MODE_UP,
+        .top_value    = 500,            //250us period
+        .load_mode    = NRF_PWM_LOAD_INDIVIDUAL,
+        .step_mode    = NRF_PWM_STEP_AUTO
+    };
+    APP_ERROR_CHECK(nrf_drv_pwm_init(&m_pwm1, &config1, pwm1_handler));
+		for(index=0;index<PWM_SEQ_LENGTH;index++)
+		{
+				m_pwm1_seq_values[index].channel_0 = index;
+				m_pwm1_seq_values[index].channel_1 = index;
+				m_pwm1_seq_values[index].channel_2 = index;
+				m_pwm1_seq_values[index].channel_3 = index;
+		}
+		
+		/* set the seq0*/
+		nrf_pwm_sequence_set(m_pwm1.p_registers, 0, &m_pwm1_seq);
+		
+		/* set short between seq0_end and stop*/
+		shorts_mask = NRF_PWM_SHORT_SEQEND0_STOP_MASK;
+		nrf_pwm_shorts_set(m_pwm1.p_registers, shorts_mask);
+		
+		/* enable the interrupt stoped*/
+		int_mask = NRF_PWM_INT_STOPPED_MASK;
+		// The workaround for nRF52 Anomaly 109 "protects" DMA transfers
+		int_mask |= NRF_PWM_INT_SEQEND0_MASK | NRF_PWM_INT_SEQEND1_MASK;
+		nrf_pwm_int_set(m_pwm1.p_registers, int_mask);
+		nrf_pwm_event_clear(m_pwm1.p_registers, NRF_PWM_EVENT_STOPPED);
+		
+
+		                           /* TIMER0*/
+		/*-----------------------------------------------------------------------------*/		
+    // Check TIMER0 configuration for details.
+    nrf_drv_timer_config_t timer_cfg = NRF_DRV_TIMER_DEFAULT_CONFIG;
+    timer_cfg.frequency = NRF_TIMER_FREQ_1MHz;
+    err_code = nrf_drv_timer_init(&m_timer0, &timer_cfg, NULL);
+    APP_ERROR_CHECK(err_code);
+
+    nrf_drv_timer_extended_compare(&m_timer0,
+                                   NRF_TIMER_CC_CHANNEL0,
+                                   TRIGER_DELAY_PWM0_PWM1,
+                                   NRF_TIMER_SHORT_COMPARE0_CLEAR_MASK | NRF_TIMER_SHORT_COMPARE0_STOP_MASK,
+                                   false);		
+		
+		
+		                           /* PPI synchronize*/
+		/*-----------------------------------------------------------------------------*/
+    err_code = nrf_drv_ppi_init();
+    APP_ERROR_CHECK(err_code);
+
+    /* Configure 1st available PPI channel to stop TIMER0 counter on TIMER1 COMPARE[0] match,
+     * which is every even number of seconds.
+     */
+    err_code = nrf_drv_ppi_channel_alloc(&m_ppi_channel);
+    APP_ERROR_CHECK(err_code);
+    err_code = nrf_drv_ppi_channel_assign(m_ppi_channel,
+                                          nrf_drv_timer_event_address_get(&m_timer0,
+                                                                          NRF_TIMER_EVENT_COMPARE0),
+                                          nrf_pwm_task_address_get(m_pwm0.p_registers,
+                                                                         NRF_PWM_TASK_SEQSTART0));
+    APP_ERROR_CHECK(err_code);
+
+		err_code = nrf_drv_ppi_channel_fork_assign(m_ppi_channel,
+		                                           nrf_pwm_task_address_get(m_pwm1.p_registers,
+                                                                         NRF_PWM_TASK_SEQSTART0));
+
+    // Enable both configured PPI channels
+    err_code = nrf_drv_ppi_channel_enable(m_ppi_channel);
+    APP_ERROR_CHECK(err_code);
+
+		nrf_drv_timer_enable(&m_timer0);
+
 }
 /**@brief Function for application main entry.
  */
