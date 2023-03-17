@@ -111,6 +111,7 @@ static nrf_ppi_channel_t m_ppi_channel;
 static const nrf_drv_timer_t m_timer0 = NRF_DRV_TIMER_INSTANCE(1);
 
 #define TRIGER_DELAY_PWM0_PWM1          250
+#define PWM_PERIOD                      4000 
 /*-----------------------------------------------------------------------------*/
 
 
@@ -651,17 +652,17 @@ static void pwm_init(void)
         .irq_priority = APP_IRQ_PRIORITY_LOWEST,
         .base_clock   = NRF_PWM_CLK_16MHz,
         .count_mode   = NRF_PWM_MODE_UP,
-        .top_value    = 4000,            //250us period
+        .top_value    = PWM_PERIOD,            //250us period
         .load_mode    = NRF_PWM_LOAD_INDIVIDUAL,
         .step_mode    = NRF_PWM_STEP_AUTO
     };
     APP_ERROR_CHECK(nrf_drv_pwm_init(&m_pwm0, &config0, pwm0_handler));
 		for(index=0;index<PWM_SEQ_LENGTH;index++)
 		{
-				m_pwm0_seq_values[index].channel_0 = index + 32768;
-				m_pwm0_seq_values[index].channel_1 = index + 32768;
-				m_pwm0_seq_values[index].channel_2 = index + 32768;
-				m_pwm0_seq_values[index].channel_3 = index + 32768;
+				m_pwm0_seq_values[index].channel_0 = (index+1)*100 + 32768;
+				m_pwm0_seq_values[index].channel_1 = (index+1)*100 + 32768;
+				m_pwm0_seq_values[index].channel_2 = (index+1)*100 + 32768;
+				m_pwm0_seq_values[index].channel_3 = (index+1)*100 + 32768;
 		}
 		
 		/* set the seq0*/
@@ -695,19 +696,18 @@ static void pwm_init(void)
         .irq_priority = APP_IRQ_PRIORITY_LOWEST,
         .base_clock   = NRF_PWM_CLK_16MHz,
         .count_mode   = NRF_PWM_MODE_UP,
-        .top_value    = 4000,            //250us period
+        .top_value    = PWM_PERIOD,            //250us period
         .load_mode    = NRF_PWM_LOAD_INDIVIDUAL,
         .step_mode    = NRF_PWM_STEP_AUTO
     };
     APP_ERROR_CHECK(nrf_drv_pwm_init(&m_pwm1, &config1, pwm1_handler));
 		for(index=0;index<PWM_SEQ_LENGTH;index++)
 		{
-				m_pwm1_seq_values[index].channel_0 = index;
-				m_pwm1_seq_values[index].channel_1 = index;
-				m_pwm1_seq_values[index].channel_2 = index;
-				m_pwm1_seq_values[index].channel_3 = index;
+				m_pwm1_seq_values[index].channel_0 = (index+1)*100;
+				m_pwm1_seq_values[index].channel_1 = (index+1)*100;
+				m_pwm1_seq_values[index].channel_2 = (index+1)*100;
+				m_pwm1_seq_values[index].channel_3 = (index+1)*100;
 		}
-		
 		/* set the seq0*/
 		nrf_pwm_sequence_set(m_pwm1.p_registers, 0, &m_pwm1_seq);
 		
