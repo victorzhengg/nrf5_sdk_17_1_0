@@ -97,7 +97,7 @@ static nrf_pwm_sequence_t const    m_pwm0_seq =
     .end_delay           = 0
 };
 
-static nrf_pwm_values_individual_t m_pwm1_seq_values[400];
+static nrf_pwm_values_individual_t m_pwm1_seq_values[PWM_SEQ_LENGTH];
 static nrf_pwm_sequence_t const    m_pwm1_seq =
 {
     .values.p_individual = m_pwm1_seq_values,
@@ -613,9 +613,10 @@ static void pwm0_handler(nrf_drv_pwm_evt_type_t event_type)
 {
     if (event_type == NRF_DRV_PWM_EVT_STOPPED)
     {
+				nrf_gpio_pin_set(20);
 				NRF_LOG_INFO("pwm0_handler: NRF_DRV_PWM_EVT_STOPPED");
 				nrf_pwm_sequence_set(m_pwm0.p_registers, 0, &m_pwm0_seq);
-				
+				nrf_gpio_pin_clear(20);
     }
 }
 
@@ -784,7 +785,7 @@ int main(void)
 	
     /*victor add pwm init*/
 		pwm_init();
-	
+		nrf_gpio_pin_clear(20);
     // Start execution.
     NRF_LOG_INFO("Blinky example started.");
     advertising_start();
