@@ -102,7 +102,7 @@ static nrf_pwm_sequence_t const    m_pwm0_seq0 =
     .end_delay           = 0
 };
 
-static nrf_pwm_values_individual_t m_pwm0_seq1_values[1]={{PWM_INVERT_FLAG,PWM_INVERT_FLAG,PWM_INVERT_FLAG,PWM_INVERT_FLAG}};
+static nrf_pwm_values_individual_t m_pwm0_seq1_values[PWM_SEQ_LENGTH];
 static nrf_pwm_sequence_t const    m_pwm0_seq1 =
 {
     .values.p_individual = m_pwm0_seq1_values,
@@ -121,7 +121,7 @@ static nrf_pwm_sequence_t const    m_pwm1_seq0 =
     .end_delay           = 0
 };
 
-static nrf_pwm_values_individual_t m_pwm1_seq1_values[1]={{PWM_PERIOD+1,PWM_PERIOD+1,PWM_PERIOD+1,PWM_PERIOD+1}};
+static nrf_pwm_values_individual_t m_pwm1_seq1_values[PWM_SEQ_LENGTH];
 static nrf_pwm_sequence_t const    m_pwm1_seq1 =
 {
     .values.p_individual = m_pwm1_seq1_values,
@@ -469,8 +469,7 @@ static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context)
             m_conn_handle = p_ble_evt->evt.gap_evt.conn_handle;
             err_code = nrf_ble_qwr_conn_handle_assign(&m_qwr, m_conn_handle);
             APP_ERROR_CHECK(err_code);
-            err_code = app_button_enable();
-            APP_ERROR_CHECK(err_code);
+
             break;
 
         case BLE_GAP_EVT_DISCONNECTED:
@@ -570,15 +569,11 @@ static void button_event_handler(uint8_t pin_no, uint8_t button_action)
     switch (pin_no)
     {
         case LEDBUTTON_BUTTON:
-            NRF_LOG_INFO("Send button state change.");
-            err_code = ble_lbs_on_button_change(m_conn_handle, &m_lbs, button_action);
-            if (err_code != NRF_SUCCESS &&
-                err_code != BLE_ERROR_INVALID_CONN_HANDLE &&
-                err_code != NRF_ERROR_INVALID_STATE &&
-                err_code != BLE_ERROR_GATTS_SYS_ATTR_MISSING)
-            {
-                APP_ERROR_CHECK(err_code);
-            }
+							if(button_action == 0)
+							{
+								 // start the PWM0 and PWM1
+								 nrf_egu_task_trigger(NRF_EGU0, NRF_EGU_TASK_TRIGGER0);
+							}
             break;
 
         default:
@@ -639,22 +634,50 @@ static void idle_state_handle(void)
 
 static uint16_t debug_cnt = 0;
 #define DEBUG_THRESHHOLD   2
+
+#define PWM_DUTY_STEP   200
+static uint16_t m_pwm_duty = 200;
+
+static uint16_t loop_num = 2;
+
 static void pwm0_handler(nrf_drv_pwm_evt_type_t event_type)
 {
-		
+		uint16_t index;
+	
     if (event_type == NRF_DRV_PWM_EVT_END_SEQ0)
     {
 				nrf_gpio_pin_set(19);
-		
-        nrf_pwm_task_trigger(m_pwm0.p_registers, NRF_PWM_TASK_STOP);			
-				nrf_pwm_sequence_set(m_pwm0.p_registers, 0, &m_pwm0_seq0);
+			
+			  m_pwm_duty = m_pwm_duty + PWM_DUTY_STEP;
+				for(index=0;index<PWM_SEQ_LENGTH;index++)
+				{
+						m_pwm0_seq1_values[index].channel_0 = m_pwm_duty + PWM_INVERT_FLAG;
+						m_pwm0_seq1_values[index].channel_1 = m_pwm_duty + PWM_INVERT_FLAG;
+						m_pwm0_seq1_values[index].channel_2 = m_pwm_duty + PWM_INVERT_FLAG;
+						m_pwm0_seq1_values[index].channel_3 = m_pwm_duty + PWM_INVERT_FLAG;
+				}
+				
 				nrf_pwm_sequence_set(m_pwm0.p_registers, 1, &m_pwm0_seq1);			
 			
-				//NRF_LOG_INFO("pwm0_handler: NRF_DRV_PWM_EVT_STOPPED");
 				nrf_gpio_pin_clear(19);
     }
 		else if (event_type == NRF_DRV_PWM_EVT_END_SEQ1)
 		{
+
+				nrf_gpio_pin_set(19);
+
+			  m_pwm_duty = m_pwm_duty + PWM_DUTY_STEP;
+				for(index=0;index<PWM_SEQ_LENGTH;index++)
+				{
+						m_pwm0_seq0_values[index].channel_0 = m_pwm_duty + PWM_INVERT_FLAG;
+						m_pwm0_seq0_values[index].channel_1 = m_pwm_duty + PWM_INVERT_FLAG;
+						m_pwm0_seq0_values[index].channel_2 = m_pwm_duty + PWM_INVERT_FLAG;
+						m_pwm0_seq0_values[index].channel_3 = m_pwm_duty + PWM_INVERT_FLAG;
+				}
+				
+				nrf_pwm_sequence_set(m_pwm0.p_registers, 0, &m_pwm0_seq0);		
+			
+				nrf_gpio_pin_clear(19);			
 		}
 		else if (event_type == NRF_DRV_PWM_EVT_STOPPED)
 		{
@@ -664,26 +687,42 @@ static void pwm0_handler(nrf_drv_pwm_evt_type_t event_type)
 
 static void pwm1_handler(nrf_drv_pwm_evt_type_t event_type)
 {
-		
+		uint16_t index;
+	
     if (event_type == NRF_DRV_PWM_EVT_END_SEQ0)
     {
 				nrf_gpio_pin_set(20);
-				nrf_pwm_task_trigger(m_pwm1.p_registers, NRF_PWM_TASK_STOP);
-				nrf_pwm_sequence_set(m_pwm1.p_registers, 0, &m_pwm0_seq0);
-				nrf_pwm_sequence_set(m_pwm1.p_registers, 1, &m_pwm0_seq1);
-				//NRF_LOG_INFO("pwm1_handler: NRF_DRV_PWM_EVT_STOPPED");					
+			
+				for(index=0;index<PWM_SEQ_LENGTH;index++)
+				{
+						m_pwm1_seq1_values[index].channel_0 = m_pwm_duty;
+						m_pwm1_seq1_values[index].channel_1 = m_pwm_duty;
+						m_pwm1_seq1_values[index].channel_2 = m_pwm_duty;
+						m_pwm1_seq1_values[index].channel_3 = m_pwm_duty;
+				}
+
+
+				nrf_pwm_sequence_set(m_pwm1.p_registers, 1, &m_pwm1_seq1);
+			
 				nrf_gpio_pin_clear(20);
     }
 		else if (event_type == NRF_DRV_PWM_EVT_END_SEQ1)
 		{
+				nrf_gpio_pin_set(20);
+			
+				for(index=0;index<PWM_SEQ_LENGTH;index++)
+				{
+						m_pwm1_seq0_values[index].channel_0 = m_pwm_duty;
+						m_pwm1_seq0_values[index].channel_1 = m_pwm_duty;
+						m_pwm1_seq0_values[index].channel_2 = m_pwm_duty;
+						m_pwm1_seq0_values[index].channel_3 = m_pwm_duty;
+				}
+				nrf_pwm_sequence_set(m_pwm1.p_registers, 0, &m_pwm1_seq0);
+			
+				nrf_gpio_pin_clear(20);			
 		}
 		else if (event_type == NRF_DRV_PWM_EVT_STOPPED)
 		{
-			  if(debug_cnt < DEBUG_THRESHHOLD)
-				{
-					  debug_cnt++;
-				}
-				nrf_egu_task_trigger(NRF_EGU0, NRF_EGU_TASK_TRIGGER0);
 		}		
 }
 
@@ -717,19 +756,24 @@ static void pwm_init(void)
     APP_ERROR_CHECK(nrf_drv_pwm_init(&m_pwm0, &config0, pwm0_handler));
 		for(index=0;index<PWM_SEQ_LENGTH;index++)
 		{
-				m_pwm0_seq0_values[index].channel_0 = (index+1)*100 + PWM_INVERT_FLAG;
-				m_pwm0_seq0_values[index].channel_1 = (index+1)*100 + PWM_INVERT_FLAG;
-				m_pwm0_seq0_values[index].channel_2 = (index+1)*100 + PWM_INVERT_FLAG;
-				m_pwm0_seq0_values[index].channel_3 = (index+1)*100 + PWM_INVERT_FLAG;
+				m_pwm0_seq0_values[index].channel_0 = m_pwm_duty + PWM_INVERT_FLAG;
+				m_pwm0_seq0_values[index].channel_1 = m_pwm_duty + PWM_INVERT_FLAG;
+				m_pwm0_seq0_values[index].channel_2 = m_pwm_duty + PWM_INVERT_FLAG;
+				m_pwm0_seq0_values[index].channel_3 = m_pwm_duty + PWM_INVERT_FLAG;
+
+				m_pwm0_seq1_values[index].channel_0 = m_pwm_duty + PWM_INVERT_FLAG;
+				m_pwm0_seq1_values[index].channel_1 = m_pwm_duty + PWM_INVERT_FLAG;
+				m_pwm0_seq1_values[index].channel_2 = m_pwm_duty + PWM_INVERT_FLAG;
+				m_pwm0_seq1_values[index].channel_3 = m_pwm_duty + PWM_INVERT_FLAG;			
 		}
 		
 		/* set the seq0*/
 		nrf_pwm_sequence_set(m_pwm0.p_registers, 0, &m_pwm0_seq0);
 		nrf_pwm_sequence_set(m_pwm0.p_registers, 1, &m_pwm0_seq1);
-		nrf_pwm_loop_set(m_pwm0.p_registers, 1);
+		nrf_pwm_loop_set(m_pwm0.p_registers, loop_num);
 		
 		/* set short between seq0_end and stop*/
-		shorts_mask = 0;//NRF_PWM_SHORT_LOOPSDONE_STOP_MASK;
+		shorts_mask = NRF_PWM_SHORT_LOOPSDONE_STOP_MASK;
 		nrf_pwm_shorts_set(m_pwm0.p_registers, shorts_mask);
 		
 		/* enable the interrupt stoped*/
@@ -739,7 +783,7 @@ static void pwm_init(void)
 		nrf_pwm_int_set(m_pwm0.p_registers, int_mask);
 		nrf_pwm_event_clear(m_pwm0.p_registers, NRF_PWM_EVENT_SEQEND0 | NRF_PWM_EVENT_STOPPED);
 		
-		nrfx_pwm_set_cb_flag(&m_pwm0, NRFX_PWM_FLAG_SIGNAL_END_SEQ0);
+		nrfx_pwm_set_cb_flag(&m_pwm0, NRFX_PWM_FLAG_SIGNAL_END_SEQ0 | NRFX_PWM_FLAG_SIGNAL_END_SEQ1);
 
 		
 		
@@ -764,18 +808,23 @@ static void pwm_init(void)
     APP_ERROR_CHECK(nrf_drv_pwm_init(&m_pwm1, &config1, pwm1_handler));
 		for(index=0;index<PWM_SEQ_LENGTH;index++)
 		{
-				m_pwm1_seq0_values[index].channel_0 = (index+1)*100;
-				m_pwm1_seq0_values[index].channel_1 = (index+1)*100;
-				m_pwm1_seq0_values[index].channel_2 = (index+1)*100;
-				m_pwm1_seq0_values[index].channel_3 = (index+1)*100;
+				m_pwm1_seq0_values[index].channel_0 = m_pwm_duty;
+				m_pwm1_seq0_values[index].channel_1 = m_pwm_duty;
+				m_pwm1_seq0_values[index].channel_2 = m_pwm_duty;
+				m_pwm1_seq0_values[index].channel_3 = m_pwm_duty;
+
+				m_pwm1_seq1_values[index].channel_0 = m_pwm_duty;
+				m_pwm1_seq1_values[index].channel_1 = m_pwm_duty;
+				m_pwm1_seq1_values[index].channel_2 = m_pwm_duty;
+				m_pwm1_seq1_values[index].channel_3 = m_pwm_duty;						
 		}
 		/* set the seq0*/
 		nrf_pwm_sequence_set(m_pwm1.p_registers, 0, &m_pwm1_seq0);
 		nrf_pwm_sequence_set(m_pwm1.p_registers, 1, &m_pwm1_seq1);
-		nrf_pwm_loop_set(m_pwm1.p_registers, 1);
+		nrf_pwm_loop_set(m_pwm1.p_registers, loop_num);
 		
 		/* set short between seq0_end and stop*/
-		shorts_mask = 0;//NRF_PWM_SHORT_LOOPSDONE_STOP_MASK;
+		shorts_mask = NRF_PWM_SHORT_LOOPSDONE_STOP_MASK;
 		nrf_pwm_shorts_set(m_pwm1.p_registers, shorts_mask);
 		
 		/* enable the interrupt stoped*/
@@ -785,7 +834,7 @@ static void pwm_init(void)
 		nrf_pwm_int_set(m_pwm1.p_registers, int_mask);
 		nrf_pwm_event_clear(m_pwm1.p_registers, NRF_PWM_EVENT_SEQEND0 | NRF_PWM_EVENT_STOPPED);
 		
-		nrfx_pwm_set_cb_flag(&m_pwm1, NRFX_PWM_FLAG_SIGNAL_END_SEQ0);
+		nrfx_pwm_set_cb_flag(&m_pwm1, NRFX_PWM_FLAG_SIGNAL_END_SEQ0 | NRFX_PWM_FLAG_SIGNAL_END_SEQ1);
 
 		                           /* TIMER0*/
 		/*-----------------------------------------------------------------------------*/		
@@ -829,14 +878,12 @@ static void pwm_init(void)
     err_code = nrf_drv_ppi_channel_enable(m_ppi_channel);
     APP_ERROR_CHECK(err_code);
 
-		// start the PWM0 and PWM1
-		nrf_egu_task_trigger(NRF_EGU0, NRF_EGU_TASK_TRIGGER0);
-
 }
 /**@brief Function for application main entry.
  */
 int main(void)
 {
+	  int err_code;
     // Initialize.
     log_init();
     leds_init();
@@ -858,6 +905,9 @@ int main(void)
     NRF_LOG_INFO("Blinky example started.");
     advertising_start();
 
+		err_code = app_button_enable();
+		APP_ERROR_CHECK(err_code);
+						
     // Enter main loop.
     for (;;)
     {
