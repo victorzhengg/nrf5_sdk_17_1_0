@@ -85,7 +85,7 @@
 
 
 #define PWM_SEQ_LENGTH                  10
-#define TRIGER_DELAY_PWM0_PWM1          200
+#define TRIGER_DELAY_PWM0_PWM1          2000
 #define PWM_PERIOD                      4000
 #define PWM_INVERT_FLAG                 0x8000 
 
@@ -132,9 +132,8 @@ static nrf_pwm_sequence_t const    m_pwm1_seq1 =
 
 
 static nrf_ppi_channel_t m_ppi_channel;
-static nrf_ppi_channel_t m_ppi_channel_stop;
-static nrf_ppi_channel_t m_ppi_channel_stop2;
-static nrf_ppi_channel_t m_ppi_channel_stop3;
+static nrf_ppi_channel_t m_ppi_channel_seq0_timer;
+static nrf_ppi_channel_t m_ppi_channel_seq1_timer;
 
 static const nrf_drv_timer_t m_timer0 = NRF_DRV_TIMER_INSTANCE(1);
 
@@ -645,42 +644,13 @@ static void pwm0_handler(nrf_drv_pwm_evt_type_t event_type)
 		uint16_t index;
 	
     if (event_type == NRF_DRV_PWM_EVT_END_SEQ0)
-    {
-				nrf_gpio_pin_set(19);
-/*			
-			  m_pwm_duty = m_pwm_duty + PWM_DUTY_STEP;
-				for(index=0;index<PWM_SEQ_LENGTH;index++)
-				{
-						m_pwm0_seq1_values[index].channel_0 = m_pwm_duty + PWM_INVERT_FLAG;
-						m_pwm0_seq1_values[index].channel_1 = m_pwm_duty + PWM_INVERT_FLAG;
-						m_pwm0_seq1_values[index].channel_2 = m_pwm_duty + PWM_INVERT_FLAG;
-						m_pwm0_seq1_values[index].channel_3 = m_pwm_duty + PWM_INVERT_FLAG;
-				}
-				
-				nrf_pwm_sequence_set(m_pwm0.p_registers, 1, &m_pwm0_seq1);			
-*/			
-				nrf_gpio_pin_clear(19);
+    {			
     }
 		else if (event_type == NRF_DRV_PWM_EVT_END_SEQ1)
-		{
-
-				nrf_gpio_pin_set(19);
-/*
-			  m_pwm_duty = m_pwm_duty + PWM_DUTY_STEP;
-				for(index=0;index<PWM_SEQ_LENGTH;index++)
-				{
-						m_pwm0_seq0_values[index].channel_0 = m_pwm_duty + PWM_INVERT_FLAG;
-						m_pwm0_seq0_values[index].channel_1 = m_pwm_duty + PWM_INVERT_FLAG;
-						m_pwm0_seq0_values[index].channel_2 = m_pwm_duty + PWM_INVERT_FLAG;
-						m_pwm0_seq0_values[index].channel_3 = m_pwm_duty + PWM_INVERT_FLAG;
-				}
-				
-				nrf_pwm_sequence_set(m_pwm0.p_registers, 0, &m_pwm0_seq0);		
-*/			
-				nrf_gpio_pin_clear(19);			
+		{		
 		}
 		else if (event_type == NRF_DRV_PWM_EVT_STOPPED)
-		{
+		{	
 		}
 		
 }
@@ -691,41 +661,61 @@ static void pwm1_handler(nrf_drv_pwm_evt_type_t event_type)
 	
     if (event_type == NRF_DRV_PWM_EVT_END_SEQ0)
     {
-				nrf_gpio_pin_set(20);
-/*			
-				for(index=0;index<PWM_SEQ_LENGTH;index++)
-				{
-						m_pwm1_seq1_values[index].channel_0 = m_pwm_duty;
-						m_pwm1_seq1_values[index].channel_1 = m_pwm_duty;
-						m_pwm1_seq1_values[index].channel_2 = m_pwm_duty;
-						m_pwm1_seq1_values[index].channel_3 = m_pwm_duty;
-				}
-
-
-				nrf_pwm_sequence_set(m_pwm1.p_registers, 1, &m_pwm1_seq1);
-*/			
-				nrf_gpio_pin_clear(20);
     }
 		else if (event_type == NRF_DRV_PWM_EVT_END_SEQ1)
 		{
-				nrf_gpio_pin_set(20);
-/*			
-				for(index=0;index<PWM_SEQ_LENGTH;index++)
-				{
-						m_pwm1_seq0_values[index].channel_0 = m_pwm_duty;
-						m_pwm1_seq0_values[index].channel_1 = m_pwm_duty;
-						m_pwm1_seq0_values[index].channel_2 = m_pwm_duty;
-						m_pwm1_seq0_values[index].channel_3 = m_pwm_duty;
-				}
-				nrf_pwm_sequence_set(m_pwm1.p_registers, 0, &m_pwm1_seq0);
-*/			
-				nrf_gpio_pin_clear(20);			
 		}
 		else if (event_type == NRF_DRV_PWM_EVT_STOPPED)
 		{
 		}		
 }
 
+uint8_t seq_flag = 0;
+void timer_event_handler(nrf_timer_event_t event_type, void *p_context)
+{
+	  uint16_t index;    
+		nrf_gpio_pin_set(19);
+		if(seq_flag == 0) /*update seq1*/
+		{
+				seq_flag = 1;
+			
+				m_pwm_duty = m_pwm_duty + PWM_DUTY_STEP;
+				for(index=0;index<PWM_SEQ_LENGTH;index++)
+				{
+						m_pwm0_seq1_values[index].channel_0 = m_pwm_duty + PWM_INVERT_FLAG;
+						m_pwm0_seq1_values[index].channel_1 = m_pwm_duty + PWM_INVERT_FLAG;
+						m_pwm0_seq1_values[index].channel_2 = m_pwm_duty + PWM_INVERT_FLAG;
+						m_pwm0_seq1_values[index].channel_3 = m_pwm_duty + PWM_INVERT_FLAG;
+
+						m_pwm1_seq1_values[index].channel_0 = m_pwm_duty;
+						m_pwm1_seq1_values[index].channel_1 = m_pwm_duty;
+						m_pwm1_seq1_values[index].channel_2 = m_pwm_duty;
+						m_pwm1_seq1_values[index].channel_3 = m_pwm_duty;					
+				}					  
+		}
+		else /*update seq0*/
+		{
+				seq_flag = 0;
+				nrf_gpio_pin_set(20);				
+				
+				m_pwm_duty = m_pwm_duty + PWM_DUTY_STEP;
+				for(index=0;index<PWM_SEQ_LENGTH;index++)
+				{
+						m_pwm0_seq0_values[index].channel_0 = m_pwm_duty + PWM_INVERT_FLAG;
+						m_pwm0_seq0_values[index].channel_1 = m_pwm_duty + PWM_INVERT_FLAG;
+						m_pwm0_seq0_values[index].channel_2 = m_pwm_duty + PWM_INVERT_FLAG;
+						m_pwm0_seq0_values[index].channel_3 = m_pwm_duty + PWM_INVERT_FLAG;
+
+						m_pwm1_seq0_values[index].channel_0 = m_pwm_duty;
+						m_pwm1_seq0_values[index].channel_1 = m_pwm_duty;
+						m_pwm1_seq0_values[index].channel_2 = m_pwm_duty;
+						m_pwm1_seq0_values[index].channel_3 = m_pwm_duty;					
+				}
+				nrf_gpio_pin_clear(20);
+		}
+
+		nrf_gpio_pin_clear(19);	
+}
 static void pwm_init(void)
 {
 	  int index;
@@ -756,15 +746,15 @@ static void pwm_init(void)
     APP_ERROR_CHECK(nrf_drv_pwm_init(&m_pwm0, &config0, pwm0_handler));
 		for(index=0;index<PWM_SEQ_LENGTH;index++)
 		{
-				m_pwm0_seq0_values[index].channel_0 = (index+1)*100 + PWM_INVERT_FLAG;
-				m_pwm0_seq0_values[index].channel_1 = (index+1)*100 + PWM_INVERT_FLAG;
-				m_pwm0_seq0_values[index].channel_2 = (index+1)*100 + PWM_INVERT_FLAG;
-				m_pwm0_seq0_values[index].channel_3 = (index+1)*100 + PWM_INVERT_FLAG;
+				m_pwm0_seq0_values[index].channel_0 = m_pwm_duty + PWM_INVERT_FLAG;
+				m_pwm0_seq0_values[index].channel_1 = m_pwm_duty + PWM_INVERT_FLAG;
+				m_pwm0_seq0_values[index].channel_2 = m_pwm_duty + PWM_INVERT_FLAG;
+				m_pwm0_seq0_values[index].channel_3 = m_pwm_duty + PWM_INVERT_FLAG;
 
-				m_pwm0_seq1_values[index].channel_0 = (index+1)*100 +1000 + PWM_INVERT_FLAG;
-				m_pwm0_seq1_values[index].channel_1 = (index+1)*100 +1000 + PWM_INVERT_FLAG;
-				m_pwm0_seq1_values[index].channel_2 = (index+1)*100 +1000 + PWM_INVERT_FLAG;
-				m_pwm0_seq1_values[index].channel_3 = (index+1)*100 +1000 + PWM_INVERT_FLAG;			
+				m_pwm0_seq1_values[index].channel_0 = m_pwm_duty + PWM_INVERT_FLAG;
+				m_pwm0_seq1_values[index].channel_1 = m_pwm_duty + PWM_INVERT_FLAG;
+				m_pwm0_seq1_values[index].channel_2 = m_pwm_duty + PWM_INVERT_FLAG;
+				m_pwm0_seq1_values[index].channel_3 = m_pwm_duty + PWM_INVERT_FLAG;			
 		}
 		
 		/* set the seq0*/
@@ -808,15 +798,15 @@ static void pwm_init(void)
     APP_ERROR_CHECK(nrf_drv_pwm_init(&m_pwm1, &config1, pwm1_handler));
 		for(index=0;index<PWM_SEQ_LENGTH;index++)
 		{
-				m_pwm1_seq0_values[index].channel_0 = (index+1)*100;
-				m_pwm1_seq0_values[index].channel_1 = (index+1)*100;
-				m_pwm1_seq0_values[index].channel_2 = (index+1)*100;
-				m_pwm1_seq0_values[index].channel_3 = (index+1)*100;
+				m_pwm1_seq0_values[index].channel_0 = m_pwm_duty;
+				m_pwm1_seq0_values[index].channel_1 = m_pwm_duty;
+				m_pwm1_seq0_values[index].channel_2 = m_pwm_duty;
+				m_pwm1_seq0_values[index].channel_3 = m_pwm_duty;
 
-				m_pwm1_seq1_values[index].channel_0 = (index+1)*100 +1000;
-				m_pwm1_seq1_values[index].channel_1 = (index+1)*100 +1000;
-				m_pwm1_seq1_values[index].channel_2 = (index+1)*100 +1000;
-				m_pwm1_seq1_values[index].channel_3 = (index+1)*100 +1000;						
+				m_pwm1_seq1_values[index].channel_0 = m_pwm_duty;
+				m_pwm1_seq1_values[index].channel_1 = m_pwm_duty;
+				m_pwm1_seq1_values[index].channel_2 = m_pwm_duty;
+				m_pwm1_seq1_values[index].channel_3 = m_pwm_duty;						
 		}
 		/* set the seq0*/
 		nrf_pwm_sequence_set(m_pwm1.p_registers, 0, &m_pwm1_seq0);
@@ -841,14 +831,14 @@ static void pwm_init(void)
     // Check TIMER0 configuration for details.
     nrf_drv_timer_config_t timer_cfg = NRF_DRV_TIMER_DEFAULT_CONFIG;
     timer_cfg.frequency = NRF_TIMER_FREQ_1MHz;
-    err_code = nrf_drv_timer_init(&m_timer0, &timer_cfg, NULL);
+    err_code = nrf_drv_timer_init(&m_timer0, &timer_cfg, timer_event_handler);
     APP_ERROR_CHECK(err_code);
 
     nrf_drv_timer_extended_compare(&m_timer0,
                                    NRF_TIMER_CC_CHANNEL0,
                                    TRIGER_DELAY_PWM0_PWM1,
                                    NRF_TIMER_SHORT_COMPARE0_CLEAR_MASK | NRF_TIMER_SHORT_COMPARE0_STOP_MASK,
-                                   false);		
+                                   true);		
 		
 		
 		                           /* PPI synchronize*/
@@ -873,11 +863,46 @@ static void pwm_init(void)
 		                                           nrf_pwm_task_address_get(m_pwm1.p_registers,
                                                                          NRF_PWM_TASK_SEQSTART0));
 		
+
+    /* PPI connect the PWM0 EVENT0 to the TIMER 
+     * 
+     */
+    err_code = nrf_drv_ppi_channel_alloc(&m_ppi_channel_seq0_timer);
+    APP_ERROR_CHECK(err_code);
+
+    err_code = nrf_drv_ppi_channel_assign(m_ppi_channel_seq0_timer,
+																					nrf_pwm_event_address_get(m_pwm0.p_registers, 
+																					                                    NRF_PWM_EVENT_SEQSTARTED0),
+                                          (uint32_t)nrf_timer_task_address_get(NRF_TIMER1,
+																																							 NRF_TIMER_TASK_START));
+    APP_ERROR_CHECK(err_code);
+		
+
+
+    /* PPI connect the PWM0 EVENT0 to the TIMER 
+     * 
+     */
+    err_code = nrf_drv_ppi_channel_alloc(&m_ppi_channel_seq1_timer);
+    APP_ERROR_CHECK(err_code);
+
+    err_code = nrf_drv_ppi_channel_assign(m_ppi_channel_seq1_timer,
+																					nrf_pwm_event_address_get(m_pwm0.p_registers, 
+																					                                    NRF_PWM_EVENT_SEQSTARTED1),
+                                          (uint32_t)nrf_timer_task_address_get(NRF_TIMER1,
+																																							 NRF_TIMER_TASK_START));
+    APP_ERROR_CHECK(err_code);
+		
+		
 		
     // Enable both configured PPI channels
     err_code = nrf_drv_ppi_channel_enable(m_ppi_channel);
     APP_ERROR_CHECK(err_code);
 
+    err_code = nrf_drv_ppi_channel_enable(m_ppi_channel_seq0_timer);
+    APP_ERROR_CHECK(err_code);
+		
+    err_code = nrf_drv_ppi_channel_enable(m_ppi_channel_seq1_timer);
+    APP_ERROR_CHECK(err_code);
 }
 /**@brief Function for application main entry.
  */
