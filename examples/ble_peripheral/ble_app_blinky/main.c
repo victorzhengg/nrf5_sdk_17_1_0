@@ -647,7 +647,7 @@ static void pwm0_handler(nrf_drv_pwm_evt_type_t event_type)
     if (event_type == NRF_DRV_PWM_EVT_END_SEQ0)
     {
 				nrf_gpio_pin_set(19);
-			
+/*			
 			  m_pwm_duty = m_pwm_duty + PWM_DUTY_STEP;
 				for(index=0;index<PWM_SEQ_LENGTH;index++)
 				{
@@ -658,14 +658,14 @@ static void pwm0_handler(nrf_drv_pwm_evt_type_t event_type)
 				}
 				
 				nrf_pwm_sequence_set(m_pwm0.p_registers, 1, &m_pwm0_seq1);			
-			
+*/			
 				nrf_gpio_pin_clear(19);
     }
 		else if (event_type == NRF_DRV_PWM_EVT_END_SEQ1)
 		{
 
 				nrf_gpio_pin_set(19);
-
+/*
 			  m_pwm_duty = m_pwm_duty + PWM_DUTY_STEP;
 				for(index=0;index<PWM_SEQ_LENGTH;index++)
 				{
@@ -676,7 +676,7 @@ static void pwm0_handler(nrf_drv_pwm_evt_type_t event_type)
 				}
 				
 				nrf_pwm_sequence_set(m_pwm0.p_registers, 0, &m_pwm0_seq0);		
-			
+*/			
 				nrf_gpio_pin_clear(19);			
 		}
 		else if (event_type == NRF_DRV_PWM_EVT_STOPPED)
@@ -692,7 +692,7 @@ static void pwm1_handler(nrf_drv_pwm_evt_type_t event_type)
     if (event_type == NRF_DRV_PWM_EVT_END_SEQ0)
     {
 				nrf_gpio_pin_set(20);
-			
+/*			
 				for(index=0;index<PWM_SEQ_LENGTH;index++)
 				{
 						m_pwm1_seq1_values[index].channel_0 = m_pwm_duty;
@@ -703,13 +703,13 @@ static void pwm1_handler(nrf_drv_pwm_evt_type_t event_type)
 
 
 				nrf_pwm_sequence_set(m_pwm1.p_registers, 1, &m_pwm1_seq1);
-			
+*/			
 				nrf_gpio_pin_clear(20);
     }
 		else if (event_type == NRF_DRV_PWM_EVT_END_SEQ1)
 		{
 				nrf_gpio_pin_set(20);
-			
+/*			
 				for(index=0;index<PWM_SEQ_LENGTH;index++)
 				{
 						m_pwm1_seq0_values[index].channel_0 = m_pwm_duty;
@@ -718,7 +718,7 @@ static void pwm1_handler(nrf_drv_pwm_evt_type_t event_type)
 						m_pwm1_seq0_values[index].channel_3 = m_pwm_duty;
 				}
 				nrf_pwm_sequence_set(m_pwm1.p_registers, 0, &m_pwm1_seq0);
-			
+*/			
 				nrf_gpio_pin_clear(20);			
 		}
 		else if (event_type == NRF_DRV_PWM_EVT_STOPPED)
@@ -756,15 +756,15 @@ static void pwm_init(void)
     APP_ERROR_CHECK(nrf_drv_pwm_init(&m_pwm0, &config0, pwm0_handler));
 		for(index=0;index<PWM_SEQ_LENGTH;index++)
 		{
-				m_pwm0_seq0_values[index].channel_0 = m_pwm_duty + PWM_INVERT_FLAG;
-				m_pwm0_seq0_values[index].channel_1 = m_pwm_duty + PWM_INVERT_FLAG;
-				m_pwm0_seq0_values[index].channel_2 = m_pwm_duty + PWM_INVERT_FLAG;
-				m_pwm0_seq0_values[index].channel_3 = m_pwm_duty + PWM_INVERT_FLAG;
+				m_pwm0_seq0_values[index].channel_0 = (index+1)*100 + PWM_INVERT_FLAG;
+				m_pwm0_seq0_values[index].channel_1 = (index+1)*100 + PWM_INVERT_FLAG;
+				m_pwm0_seq0_values[index].channel_2 = (index+1)*100 + PWM_INVERT_FLAG;
+				m_pwm0_seq0_values[index].channel_3 = (index+1)*100 + PWM_INVERT_FLAG;
 
-				m_pwm0_seq1_values[index].channel_0 = m_pwm_duty + PWM_INVERT_FLAG;
-				m_pwm0_seq1_values[index].channel_1 = m_pwm_duty + PWM_INVERT_FLAG;
-				m_pwm0_seq1_values[index].channel_2 = m_pwm_duty + PWM_INVERT_FLAG;
-				m_pwm0_seq1_values[index].channel_3 = m_pwm_duty + PWM_INVERT_FLAG;			
+				m_pwm0_seq1_values[index].channel_0 = (index+1)*100 +1000 + PWM_INVERT_FLAG;
+				m_pwm0_seq1_values[index].channel_1 = (index+1)*100 +1000 + PWM_INVERT_FLAG;
+				m_pwm0_seq1_values[index].channel_2 = (index+1)*100 +1000 + PWM_INVERT_FLAG;
+				m_pwm0_seq1_values[index].channel_3 = (index+1)*100 +1000 + PWM_INVERT_FLAG;			
 		}
 		
 		/* set the seq0*/
@@ -808,15 +808,15 @@ static void pwm_init(void)
     APP_ERROR_CHECK(nrf_drv_pwm_init(&m_pwm1, &config1, pwm1_handler));
 		for(index=0;index<PWM_SEQ_LENGTH;index++)
 		{
-				m_pwm1_seq0_values[index].channel_0 = m_pwm_duty;
-				m_pwm1_seq0_values[index].channel_1 = m_pwm_duty;
-				m_pwm1_seq0_values[index].channel_2 = m_pwm_duty;
-				m_pwm1_seq0_values[index].channel_3 = m_pwm_duty;
+				m_pwm1_seq0_values[index].channel_0 = (index+1)*100;
+				m_pwm1_seq0_values[index].channel_1 = (index+1)*100;
+				m_pwm1_seq0_values[index].channel_2 = (index+1)*100;
+				m_pwm1_seq0_values[index].channel_3 = (index+1)*100;
 
-				m_pwm1_seq1_values[index].channel_0 = m_pwm_duty;
-				m_pwm1_seq1_values[index].channel_1 = m_pwm_duty;
-				m_pwm1_seq1_values[index].channel_2 = m_pwm_duty;
-				m_pwm1_seq1_values[index].channel_3 = m_pwm_duty;						
+				m_pwm1_seq1_values[index].channel_0 = (index+1)*100 +1000;
+				m_pwm1_seq1_values[index].channel_1 = (index+1)*100 +1000;
+				m_pwm1_seq1_values[index].channel_2 = (index+1)*100 +1000;
+				m_pwm1_seq1_values[index].channel_3 = (index+1)*100 +1000;						
 		}
 		/* set the seq0*/
 		nrf_pwm_sequence_set(m_pwm1.p_registers, 0, &m_pwm1_seq0);
