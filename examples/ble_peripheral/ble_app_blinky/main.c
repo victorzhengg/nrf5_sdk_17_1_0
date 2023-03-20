@@ -71,6 +71,7 @@
 #include "nrf_drv_pwm.h"
 #include "nrf_drv_ppi.h"
 #include "nrf_drv_timer.h"
+#include "nrf_egu.h"
 
 #define PWM0_OUT0                 3 
 #define PWM0_OUT1                 4 
@@ -83,35 +84,61 @@
 #define PWM1_OUT3                 31 
 
 
-#define PWM_SEQ_LENGTH 10
+#define PWM_SEQ_LENGTH                  10
+#define TRIGER_DELAY_PWM0_PWM1          200
+#define PWM_PERIOD                      4000
+#define PWM_INVERT_FLAG                 0x8000 
+
 
 static nrf_drv_pwm_t m_pwm0 = NRF_DRV_PWM_INSTANCE(0);
 static nrf_drv_pwm_t m_pwm1 = NRF_DRV_PWM_INSTANCE(1);
 
-static nrf_pwm_values_individual_t m_pwm0_seq_values[PWM_SEQ_LENGTH];
-static nrf_pwm_sequence_t const    m_pwm0_seq =
+static nrf_pwm_values_individual_t m_pwm0_seq0_values[PWM_SEQ_LENGTH];
+static nrf_pwm_sequence_t const    m_pwm0_seq0 =
 {
-    .values.p_individual = m_pwm0_seq_values,
-    .length              = NRF_PWM_VALUES_LENGTH(m_pwm0_seq_values),
+    .values.p_individual = m_pwm0_seq0_values,
+    .length              = NRF_PWM_VALUES_LENGTH(m_pwm0_seq0_values),
     .repeats             = 0,
     .end_delay           = 0
 };
 
-static nrf_pwm_values_individual_t m_pwm1_seq_values[PWM_SEQ_LENGTH];
-static nrf_pwm_sequence_t const    m_pwm1_seq =
+static nrf_pwm_values_individual_t m_pwm0_seq1_values[1]={{PWM_INVERT_FLAG,PWM_INVERT_FLAG,PWM_INVERT_FLAG,PWM_INVERT_FLAG}};
+static nrf_pwm_sequence_t const    m_pwm0_seq1 =
 {
-    .values.p_individual = m_pwm1_seq_values,
-    .length              = NRF_PWM_VALUES_LENGTH(m_pwm1_seq_values),
+    .values.p_individual = m_pwm0_seq1_values,
+    .length              = NRF_PWM_VALUES_LENGTH(m_pwm0_seq1_values),
     .repeats             = 0,
     .end_delay           = 0
 };
+
+
+static nrf_pwm_values_individual_t m_pwm1_seq0_values[PWM_SEQ_LENGTH];
+static nrf_pwm_sequence_t const    m_pwm1_seq0 =
+{
+    .values.p_individual = m_pwm1_seq0_values,
+    .length              = NRF_PWM_VALUES_LENGTH(m_pwm1_seq0_values),
+    .repeats             = 0,
+    .end_delay           = 0
+};
+
+static nrf_pwm_values_individual_t m_pwm1_seq1_values[1]={{PWM_PERIOD+1,PWM_PERIOD+1,PWM_PERIOD+1,PWM_PERIOD+1}};
+static nrf_pwm_sequence_t const    m_pwm1_seq1 =
+{
+    .values.p_individual = m_pwm1_seq1_values,
+    .length              = NRF_PWM_VALUES_LENGTH(m_pwm1_seq1_values),
+    .repeats             = 0,
+    .end_delay           = 0
+};
+
 
 static nrf_ppi_channel_t m_ppi_channel;
+static nrf_ppi_channel_t m_ppi_channel_stop;
+static nrf_ppi_channel_t m_ppi_channel_stop2;
+static nrf_ppi_channel_t m_ppi_channel_stop3;
 
 static const nrf_drv_timer_t m_timer0 = NRF_DRV_TIMER_INSTANCE(1);
 
-#define TRIGER_DELAY_PWM0_PWM1          250
-#define PWM_PERIOD                      4000 
+
 /*-----------------------------------------------------------------------------*/
 
 
@@ -606,18 +633,17 @@ static void idle_state_handle(void)
 {
     if (NRF_LOG_PROCESS() == false)
     {
-        nrf_pwr_mgmt_run();
+        //nrf_pwr_mgmt_run();
     }
 }
 
 static void pwm0_handler(nrf_drv_pwm_evt_type_t event_type)
 {
     if (event_type == NRF_DRV_PWM_EVT_STOPPED)
-    {
-				nrf_gpio_pin_set(20);
+    {				
 				NRF_LOG_INFO("pwm0_handler: NRF_DRV_PWM_EVT_STOPPED");
-				nrf_pwm_sequence_set(m_pwm0.p_registers, 0, &m_pwm0_seq);
-				nrf_gpio_pin_clear(20);
+				nrf_pwm_sequence_set(m_pwm0.p_registers, 0, &m_pwm0_seq0);
+				nrf_pwm_sequence_set(m_pwm0.p_registers, 1, &m_pwm0_seq1);				
     }
 }
 
@@ -625,9 +651,12 @@ static void pwm1_handler(nrf_drv_pwm_evt_type_t event_type)
 {
     if (event_type == NRF_DRV_PWM_EVT_STOPPED)
     {
+				nrf_gpio_pin_set(20);
 				NRF_LOG_INFO("pwm1_handler: NRF_DRV_PWM_EVT_STOPPED");
-				nrf_pwm_sequence_set(m_pwm1.p_registers, 0, &m_pwm1_seq);
-				nrf_drv_timer_enable(&m_timer0);
+				nrf_pwm_sequence_set(m_pwm1.p_registers, 0, &m_pwm1_seq0);
+				nrf_pwm_sequence_set(m_pwm1.p_registers, 1, &m_pwm1_seq1);
+				nrf_egu_task_trigger(NRF_EGU0, NRF_EGU_TASK_TRIGGER0);
+				nrf_gpio_pin_clear(20);
     }
 }
 
@@ -659,17 +688,19 @@ static void pwm_init(void)
     APP_ERROR_CHECK(nrf_drv_pwm_init(&m_pwm0, &config0, pwm0_handler));
 		for(index=0;index<PWM_SEQ_LENGTH;index++)
 		{
-				m_pwm0_seq_values[index].channel_0 = (index+1)*100 + 32768;
-				m_pwm0_seq_values[index].channel_1 = (index+1)*100 + 32768;
-				m_pwm0_seq_values[index].channel_2 = (index+1)*100 + 32768;
-				m_pwm0_seq_values[index].channel_3 = (index+1)*100 + 32768;
+				m_pwm0_seq0_values[index].channel_0 = (index+1)*100 + PWM_INVERT_FLAG;
+				m_pwm0_seq0_values[index].channel_1 = (index+1)*100 + PWM_INVERT_FLAG;
+				m_pwm0_seq0_values[index].channel_2 = (index+1)*100 + PWM_INVERT_FLAG;
+				m_pwm0_seq0_values[index].channel_3 = (index+1)*100 + PWM_INVERT_FLAG;
 		}
 		
 		/* set the seq0*/
-		nrf_pwm_sequence_set(m_pwm0.p_registers, 0, &m_pwm0_seq);
+		nrf_pwm_sequence_set(m_pwm0.p_registers, 0, &m_pwm0_seq0);
+		nrf_pwm_sequence_set(m_pwm0.p_registers, 1, &m_pwm0_seq1);
+		nrf_pwm_loop_set(m_pwm0.p_registers, 1);
 		
 		/* set short between seq0_end and stop*/
-		uint32_t shorts_mask = NRF_PWM_SHORT_SEQEND0_STOP_MASK;
+		uint32_t shorts_mask = 0;//NRF_PWM_SHORT_LOOPSDONE_STOP_MASK;
 		nrf_pwm_shorts_set(m_pwm0.p_registers, shorts_mask);
 		
 		/* enable the interrupt stoped*/
@@ -703,16 +734,18 @@ static void pwm_init(void)
     APP_ERROR_CHECK(nrf_drv_pwm_init(&m_pwm1, &config1, pwm1_handler));
 		for(index=0;index<PWM_SEQ_LENGTH;index++)
 		{
-				m_pwm1_seq_values[index].channel_0 = (index+1)*100;
-				m_pwm1_seq_values[index].channel_1 = (index+1)*100;
-				m_pwm1_seq_values[index].channel_2 = (index+1)*100;
-				m_pwm1_seq_values[index].channel_3 = (index+1)*100;
+				m_pwm1_seq0_values[index].channel_0 = (index+1)*100;
+				m_pwm1_seq0_values[index].channel_1 = (index+1)*100;
+				m_pwm1_seq0_values[index].channel_2 = (index+1)*100;
+				m_pwm1_seq0_values[index].channel_3 = (index+1)*100;
 		}
 		/* set the seq0*/
-		nrf_pwm_sequence_set(m_pwm1.p_registers, 0, &m_pwm1_seq);
+		nrf_pwm_sequence_set(m_pwm1.p_registers, 0, &m_pwm1_seq0);
+		nrf_pwm_sequence_set(m_pwm1.p_registers, 1, &m_pwm1_seq1);
+		nrf_pwm_loop_set(m_pwm1.p_registers, 1);
 		
 		/* set short between seq0_end and stop*/
-		shorts_mask = NRF_PWM_SHORT_SEQEND0_STOP_MASK;
+		shorts_mask = 0;//NRF_PWM_SHORT_LOOPSDONE_STOP_MASK;
 		nrf_pwm_shorts_set(m_pwm1.p_registers, shorts_mask);
 		
 		/* enable the interrupt stoped*/
@@ -743,14 +776,15 @@ static void pwm_init(void)
     err_code = nrf_drv_ppi_init();
     APP_ERROR_CHECK(err_code);
 
-    /* Configure 1st available PPI channel to stop TIMER0 counter on TIMER1 COMPARE[0] match,
-     * which is every even number of seconds.
+    /* PPI connect the EGU0 EVENT0 to the NRF_PWM_TASK_SEQSTART0 of PWM0 and PWM1
+     * 
      */
     err_code = nrf_drv_ppi_channel_alloc(&m_ppi_channel);
     APP_ERROR_CHECK(err_code);
+		
     err_code = nrf_drv_ppi_channel_assign(m_ppi_channel,
-                                          nrf_drv_timer_event_address_get(&m_timer0,
-                                                                          NRF_TIMER_EVENT_COMPARE0),
+																					(uint32_t)nrf_egu_event_address_get(NRF_EGU0, 
+																					                                    NRF_EGU_EVENT_TRIGGERED0),
                                           nrf_pwm_task_address_get(m_pwm0.p_registers,
                                                                          NRF_PWM_TASK_SEQSTART0));
     APP_ERROR_CHECK(err_code);
@@ -759,11 +793,66 @@ static void pwm_init(void)
 		                                           nrf_pwm_task_address_get(m_pwm1.p_registers,
                                                                          NRF_PWM_TASK_SEQSTART0));
 
+    /* PPI connect the PWM0 EVENT0 to the NRF_PWM_TASK_SEQSTART0 of PWM0 and PWM1
+     * 
+     */
+    err_code = nrf_drv_ppi_channel_alloc(&m_ppi_channel_stop);
+    APP_ERROR_CHECK(err_code);
+		
+    err_code = nrf_drv_ppi_channel_assign(m_ppi_channel_stop,
+																					nrf_pwm_event_address_get(m_pwm0.p_registers,
+                                                                    NRF_PWM_EVENT_SEQEND0),
+                                          nrf_drv_timer_task_address_get(&m_timer0,
+                                                                          NRF_TIMER_TASK_START));
+    APP_ERROR_CHECK(err_code);
+
+    /* PPI connect the TIMER1 EVENT0 to the EGU1 
+     * 
+     */
+    err_code = nrf_drv_ppi_channel_alloc(&m_ppi_channel_stop2);
+    APP_ERROR_CHECK(err_code);
+		
+    err_code = nrf_drv_ppi_channel_assign(m_ppi_channel_stop2,
+																					nrf_drv_timer_event_address_get(&m_timer0,
+                                                                          NRF_TIMER_EVENT_COMPARE0),
+																				  (uint32_t)nrf_egu_task_address_get(NRF_EGU1, 
+																					                                   NRF_EGU_TASK_TRIGGER0));
+    APP_ERROR_CHECK(err_code);
+		
+
+    /* PPI connect the TIMER1 EVENT0 to the NRF_PWM_TASK_STOP of PWM0 and PWM1
+     * 
+     */
+    err_code = nrf_drv_ppi_channel_alloc(&m_ppi_channel_stop3);
+    APP_ERROR_CHECK(err_code);
+		
+    err_code = nrf_drv_ppi_channel_assign(m_ppi_channel_stop3,
+																				  (uint32_t)nrf_egu_event_address_get(NRF_EGU1, 
+																					                                    NRF_EGU_EVENT_TRIGGERED0),
+                                          nrf_pwm_task_address_get(m_pwm0.p_registers,
+                                                                         NRF_PWM_TASK_STOP));
+    APP_ERROR_CHECK(err_code);
+		err_code = nrf_drv_ppi_channel_fork_assign(m_ppi_channel_stop3,
+		                                           nrf_pwm_task_address_get(m_pwm1.p_registers,
+                                                                         NRF_PWM_TASK_STOP));
+    APP_ERROR_CHECK(err_code);
+		
+		
     // Enable both configured PPI channels
     err_code = nrf_drv_ppi_channel_enable(m_ppi_channel);
     APP_ERROR_CHECK(err_code);
 
-		nrf_drv_timer_enable(&m_timer0);
+    err_code = nrf_drv_ppi_channel_enable(m_ppi_channel_stop);
+    APP_ERROR_CHECK(err_code);
+		
+    err_code = nrf_drv_ppi_channel_enable(m_ppi_channel_stop2);
+    APP_ERROR_CHECK(err_code);
+
+    err_code = nrf_drv_ppi_channel_enable(m_ppi_channel_stop3);
+    APP_ERROR_CHECK(err_code);
+		
+		//nrf_drv_timer_enable(&m_timer0);
+		nrf_egu_task_trigger(NRF_EGU0, NRF_EGU_TASK_TRIGGER0);
 
 }
 /**@brief Function for application main entry.
