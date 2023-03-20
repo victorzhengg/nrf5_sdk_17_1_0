@@ -321,6 +321,19 @@ bool nrfx_pwm_stop(nrfx_pwm_t const * const p_instance, bool wait_until_stopped)
  */
 bool nrfx_pwm_is_stopped(nrfx_pwm_t const * const p_instance);
 
+
+/**
+ * @brief Function for setting the flag of the PWM peripheral callback.
+ *
+ * @param[in] p_instance Pointer to the driver instance structure.
+ *
+ * @param[in] flags .
+ *
+ * @retval 0
+ */
+uint32_t nrfx_pwm_set_cb_flag(nrfx_pwm_t const * const p_instance, uint32_t flags);
+
+
 /**
  * @brief Function for updating the sequence data during playback.
  *

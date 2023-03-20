@@ -473,6 +473,14 @@ static void irq_handler(NRF_PWM_Type * p_pwm, pwm_control_block_t * p_cb)
 }
 
 
+
+uint32_t nrfx_pwm_set_cb_flag(nrfx_pwm_t const * const p_instance, uint32_t flags)
+{
+    pwm_control_block_t * p_cb  = &m_cb[p_instance->drv_inst_idx];
+		p_cb->flags = flags;
+	  return 0;
+}
+
 #if defined(USE_DMA_ISSUE_WORKAROUND)
 // See 'start_playback' why this is needed.
 void DMA_ISSUE_EGU_IRQHandler(void)
