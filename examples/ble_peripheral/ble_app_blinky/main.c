@@ -63,7 +63,7 @@
 #include "nrf_ble_gatt.h"
 #include "nrf_ble_qwr.h"
 #include "nrf_pwr_mgmt.h"
-
+#include <nrf_delay.h>
 
 
 /*-----------------------------------------------------------------------------*/
@@ -637,13 +637,19 @@ static void idle_state_handle(void)
     }
 }
 
+static uint16_t debug_cnt = 0;
+#define DEBUG_THRESHHOLD   2
 static void pwm0_handler(nrf_drv_pwm_evt_type_t event_type)
 {
 		
     if (event_type == NRF_DRV_PWM_EVT_END_SEQ0)
     {
 				nrf_gpio_pin_set(19);
+		
         nrf_pwm_task_trigger(m_pwm0.p_registers, NRF_PWM_TASK_STOP);			
+				nrf_pwm_sequence_set(m_pwm0.p_registers, 0, &m_pwm0_seq0);
+				nrf_pwm_sequence_set(m_pwm0.p_registers, 1, &m_pwm0_seq1);			
+			
 				//NRF_LOG_INFO("pwm0_handler: NRF_DRV_PWM_EVT_STOPPED");
 				nrf_gpio_pin_clear(19);
     }
@@ -652,9 +658,6 @@ static void pwm0_handler(nrf_drv_pwm_evt_type_t event_type)
 		}
 		else if (event_type == NRF_DRV_PWM_EVT_STOPPED)
 		{
-				nrf_pwm_sequence_set(m_pwm0.p_registers, 0, &m_pwm0_seq0);
-				nrf_pwm_sequence_set(m_pwm0.p_registers, 1, &m_pwm0_seq1);
-				nrf_egu_task_trigger(NRF_EGU0, NRF_EGU_TASK_TRIGGER0);
 		}
 		
 }
@@ -666,6 +669,8 @@ static void pwm1_handler(nrf_drv_pwm_evt_type_t event_type)
     {
 				nrf_gpio_pin_set(20);
 				nrf_pwm_task_trigger(m_pwm1.p_registers, NRF_PWM_TASK_STOP);
+				nrf_pwm_sequence_set(m_pwm1.p_registers, 0, &m_pwm0_seq0);
+				nrf_pwm_sequence_set(m_pwm1.p_registers, 1, &m_pwm0_seq1);
 				//NRF_LOG_INFO("pwm1_handler: NRF_DRV_PWM_EVT_STOPPED");					
 				nrf_gpio_pin_clear(20);
     }
@@ -674,8 +679,11 @@ static void pwm1_handler(nrf_drv_pwm_evt_type_t event_type)
 		}
 		else if (event_type == NRF_DRV_PWM_EVT_STOPPED)
 		{
-				nrf_pwm_sequence_set(m_pwm1.p_registers, 0, &m_pwm0_seq0);
-				nrf_pwm_sequence_set(m_pwm1.p_registers, 1, &m_pwm0_seq1);
+			  if(debug_cnt < DEBUG_THRESHHOLD)
+				{
+					  debug_cnt++;
+				}
+				nrf_egu_task_trigger(NRF_EGU0, NRF_EGU_TASK_TRIGGER0);
 		}		
 }
 
