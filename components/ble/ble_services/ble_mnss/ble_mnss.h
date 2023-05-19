@@ -78,22 +78,27 @@
 extern "C" {
 #endif
 
+
+#define BLE_MNSS_BLE_OBSERVER_PRIO   2
+
+
+
 /**@brief   Macro for defining a ble_lbs instance.
  *
  * @param   _name   Name of the instance.
  * @hideinitializer
  */
-#define BLE_LBS_DEF(_name)                                                                          \
-static ble_lbs_t _name;                                                                             \
+#define BLE_MNSS_DEF(_name)                                                                          \
+static ble_mnss_t _name;                                                                             \
 NRF_SDH_BLE_OBSERVER(_name ## _obs,                                                                 \
-                     BLE_LBS_BLE_OBSERVER_PRIO,                                                     \
-                     ble_lbs_on_ble_evt, &_name)
+                     BLE_MNSS_BLE_OBSERVER_PRIO,                                                     \
+                     ble_mnss_on_ble_evt, &_name)
 
-#define LBS_UUID_BASE        {0x23, 0xD1, 0xBC, 0xEA, 0x5F, 0x78, 0x23, 0x15, \
+#define MNSS_UUID_BASE        {0x23, 0xD1, 0xBC, 0xEA, 0x5F, 0x78, 0x23, 0x15, \
                               0xDE, 0xEF, 0x12, 0x12, 0x00, 0x00, 0x00, 0x00}
-#define LBS_UUID_SERVICE     0x1523
-#define LBS_UUID_BUTTON_CHAR 0x1524
-#define LBS_UUID_LED_CHAR    0x1525
+#define MNSS_UUID_SERVICE     0x1623
+#define MNSS_UUID_WRITE_CHAR  0x1624
+#define MNSS_UUID_READ_CHAR   0x1625
 
 
 // Forward declaration of the ble_lbs_t type.
@@ -114,6 +119,7 @@ struct ble_mnss_data_s
 {
     uint32_t sn; /**< serial number */
 	  uint32_t counter_value; /**< counter value*/
+		uint32_t period; /**< period value*/
 };
 
 
@@ -121,11 +127,11 @@ struct ble_mnss_data_s
 struct ble_mnss_s
 {
     uint16_t                    service_handle;      /**< Handle of LED Button Service (as provided by the BLE stack). */
-    ble_gatts_char_handles_t    write_char_handles;  /**< Handles related to the write Characteristic. */
-    ble_gatts_char_handles_t    read_char_handles;   /**< Handles related to the read Characteristic. */
+    ble_gatts_char_handles_t    data_write_handle;  /**< Handles related to the write Characteristic. */
+    ble_gatts_char_handles_t    data_read_handle;   /**< Handles related to the read Characteristic. */
     uint8_t                     uuid_type;           /**< UUID type for the Multi Node Synchronize Button Service. */
-    ble_mnss_write_handler_t    data_write_handler;   /**< Event handler to be called when the write Characteristic is written. */
 		ble_mnss_data_t             data;
+	  ble_mnss_write_handler_t    data_write_handler;
 };
 
 
