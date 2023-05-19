@@ -97,38 +97,48 @@ NRF_SDH_BLE_OBSERVER(_name ## _obs,                                             
 
 
 // Forward declaration of the ble_lbs_t type.
-typedef struct ble_lbs_s ble_lbs_t;
+typedef struct ble_mnss_s         ble_mnss_t;
+typedef struct ble_mnss_data_s		ble_mnss_data_t;													
 
-typedef void (*ble_lbs_led_write_handler_t) (uint16_t conn_handle, ble_lbs_t * p_lbs, uint8_t new_state);
+typedef void (*ble_mnss_write_handler_t) (uint16_t conn_handle, ble_mnss_data_t * p_data);
 
 /** @brief LED Button Service init structure. This structure contains all options and data needed for
  *        initialization of the service.*/
 typedef struct
 {
-    ble_lbs_led_write_handler_t led_write_handler; /**< Event handler to be called when the LED Characteristic is written. */
-} ble_lbs_init_t;
+    ble_mnss_write_handler_t data_write_handler; /**< Event handler to be called when the data Characteristic is written. */
+} ble_mnss_init_t;
 
-/**@brief LED Button Service structure. This structure contains various status information for the service. */
-struct ble_lbs_s
+
+struct ble_mnss_data_s
 {
-    uint16_t                    service_handle;      /**< Handle of LED Button Service (as provided by the BLE stack). */
-    ble_gatts_char_handles_t    led_char_handles;    /**< Handles related to the LED Characteristic. */
-    ble_gatts_char_handles_t    button_char_handles; /**< Handles related to the Button Characteristic. */
-    uint8_t                     uuid_type;           /**< UUID type for the LED Button Service. */
-    ble_lbs_led_write_handler_t led_write_handler;   /**< Event handler to be called when the LED Characteristic is written. */
+    uint32_t sn; /**< serial number */
+	  uint32_t counter_value; /**< counter value*/
 };
 
 
-/**@brief Function for initializing the LED Button Service.
+/**@brief Multi Node Synchronize Service structure. This structure contains various status information for the service. */
+struct ble_mnss_s
+{
+    uint16_t                    service_handle;      /**< Handle of LED Button Service (as provided by the BLE stack). */
+    ble_gatts_char_handles_t    write_char_handles;  /**< Handles related to the write Characteristic. */
+    ble_gatts_char_handles_t    read_char_handles;   /**< Handles related to the read Characteristic. */
+    uint8_t                     uuid_type;           /**< UUID type for the Multi Node Synchronize Button Service. */
+    ble_mnss_write_handler_t    data_write_handler;   /**< Event handler to be called when the write Characteristic is written. */
+		ble_mnss_data_t             data;
+};
+
+
+/**@brief Function for initializing the Multi Node Synchronize Service.
  *
- * @param[out] p_lbs      LED Button Service structure. This structure must be supplied by
+ * @param[out] p_mnss      LED Button Service structure. This structure must be supplied by
  *                        the application. It is initialized by this function and will later
  *                        be used to identify this particular service instance.
- * @param[in] p_lbs_init  Information needed to initialize the service.
+ * @param[in] p_mnss_init  Information needed to initialize the service.
  *
  * @retval NRF_SUCCESS If the service was initialized successfully. Otherwise, an error code is returned.
  */
-uint32_t ble_lbs_init(ble_lbs_t * p_lbs, const ble_lbs_init_t * p_lbs_init);
+uint32_t ble_mnss_init(ble_mnss_t * p_mnss, const ble_mnss_init_t * p_mnss_init);
 
 
 /**@brief Function for handling the application's BLE stack events.
@@ -138,7 +148,7 @@ uint32_t ble_lbs_init(ble_lbs_t * p_lbs, const ble_lbs_init_t * p_lbs_init);
  * @param[in] p_ble_evt  Event received from the BLE stack.
  * @param[in] p_context  LED Button Service structure.
  */
-void ble_lbs_on_ble_evt(ble_evt_t const * p_ble_evt, void * p_context);
+void ble_mnss_on_ble_evt(ble_evt_t const * p_ble_evt, void * p_context);
 
 
 /**@brief Function for sending a button state notification.
@@ -149,7 +159,18 @@ void ble_lbs_on_ble_evt(ble_evt_t const * p_ble_evt, void * p_context);
  *
  * @retval NRF_SUCCESS If the notification was sent successfully. Otherwise, an error code is returned.
  */
-uint32_t ble_lbs_on_button_change(uint16_t conn_handle, ble_lbs_t * p_lbs, uint8_t button_state);
+uint32_t ble_mnss_start(ble_mnss_t * p_mnss);
+
+
+/**@brief Function for sending a button state notification.
+ *
+ ' @param[in] conn_handle   Handle of the peripheral connection to which the button state notification will be sent.
+ * @param[in] p_lbs         LED Button Service structure.
+ * @param[in] button_state  New button state.
+ *
+ * @retval NRF_SUCCESS If the notification was sent successfully. Otherwise, an error code is returned.
+ */
+uint32_t ble_mnss_stop(ble_mnss_t * p_mnss);
 
 
 #ifdef __cplusplus
