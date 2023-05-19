@@ -335,7 +335,7 @@
 
   <Group>
     <GroupName>Application</GroupName>
-    <tvExp>0</tvExp>
+    <tvExp>1</tvExp>
     <tvExpOptDlg>0</tvExpOptDlg>
     <cbSel>0</cbSel>
     <RteFlg>0</RteFlg>
@@ -487,7 +487,7 @@
 
   <Group>
     <GroupName>nRF_BLE_Services</GroupName>
-    <tvExp>0</tvExp>
+    <tvExp>1</tvExp>
     <tvExpOptDlg>0</tvExpOptDlg>
     <cbSel>0</cbSel>
     <RteFlg>0</RteFlg>
@@ -498,8 +498,8 @@
       <tvExp>0</tvExp>
       <tvExpOptDlg>0</tvExpOptDlg>
       <bDave2>0</bDave2>
-      <PathWithFileName>..\..\..\..\..\..\components\ble\ble_services\ble_lbs\ble_lbs.c</PathWithFileName>
-      <FilenameWithoutPath>ble_lbs.c</FilenameWithoutPath>
+      <PathWithFileName>..\..\..\..\..\..\components\ble\ble_services\ble_mnss\ble_mnss.c</PathWithFileName>
+      <FilenameWithoutPath>ble_mnss.c</FilenameWithoutPath>
       <RteFlg>0</RteFlg>
       <bShared>0</bShared>
     </File>
