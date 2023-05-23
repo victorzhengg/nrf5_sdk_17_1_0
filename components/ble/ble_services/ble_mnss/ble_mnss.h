@@ -105,8 +105,8 @@ NRF_SDH_BLE_OBSERVER(_name ## _obs,                                             
 typedef struct ble_mnss_s         ble_mnss_t;
 typedef struct ble_mnss_data_s		ble_mnss_data_t;													
 
-typedef void (*ble_mnss_write_handler_t) (uint16_t conn_handle, ble_mnss_data_t * p_data);
-
+typedef void (*ble_mnss_write_handler_t) (uint16_t conn_handle, ble_mnss_t* p_mnss, ble_mnss_data_t * p_data);
+															
 /** @brief LED Button Service init structure. This structure contains all options and data needed for
  *        initialization of the service.*/
 typedef struct

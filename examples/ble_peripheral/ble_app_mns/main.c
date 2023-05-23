@@ -262,15 +262,28 @@ static void nrf_qwr_error_handler(uint32_t nrf_error)
 }
 
 
+
 /**@brief Function for handling write events to the LED characteristic.
  *
  * @param[in] p_lbs     Instance of LED Button Service to which the write applies.
  * @param[in] led_state Written/desired state of the LED.
  */
-static void mnss_write_handler(uint16_t conn_handle, ble_mnss_data_t * p_data)
+static void mnss_write_handler(uint16_t conn_handle, ble_mnss_t* p_mnss, ble_mnss_data_t * p_data)
 {
-
+		ble_gatts_value_t     gatt_value;
+		static ble_mnss_data_t data;
+		uint16_t len = sizeof(ble_mnss_data_t);
+	
 		NRF_LOG_INFO("mnss_write_handler");
+		NRF_LOG_INFO("mnss_write_handler: conn_handle = %x", conn_handle);
+		memcpy(&data, p_data, len);
+		NRF_LOG_INFO("data:");
+		NRF_LOG_INFO("SN:%X, CNT:%X, PERIOD:%X", data.sn, data.counter_value, data.period);
+	
+		gatt_value.len = len;
+		gatt_value.p_value = (uint8_t *)&data;
+		gatt_value.offset = 0;
+		sd_ble_gatts_value_set(conn_handle,p_mnss->data_read_handle.value_handle, &gatt_value);
 }
 
 
