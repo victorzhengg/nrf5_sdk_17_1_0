@@ -40,6 +40,7 @@
 #include "sdk_common.h"
 #include "ble_mnss.h"
 #include "ble_srv_common.h"
+#include "nrf_log.h"
 
 
 ///**@brief Function for handling the Write event.
@@ -67,6 +68,7 @@ void ble_mnss_on_ble_evt(ble_evt_t const * p_ble_evt, void * p_context)
     switch (p_ble_evt->header.evt_id)
     {
         case BLE_GATTS_EVT_WRITE:
+						NRF_LOG_INFO("BLE_GATTS_EVT_WRITE");
             break;
 
         default:
