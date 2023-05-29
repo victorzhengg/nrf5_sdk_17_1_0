@@ -151,7 +151,7 @@ static void scan_start(void)
 
 /**@brief Handles events coming from the LED Button central module.
  */
-static void lbs_c_evt_handler(ble_lbs_c_t * p_lbs_c, ble_lbs_c_evt_t * p_lbs_c_evt)
+static void lbs_c_evt_handler(ble_mnss_c_t * p_lbs_c, ble_lbs_c_evt_t * p_lbs_c_evt)
 {
     switch (p_lbs_c_evt->evt_type)
     {
@@ -287,7 +287,7 @@ static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context)
 
 /**@brief LED Button client initialization.
  */
-static void lbs_c_init(void)
+static void mnss_c_init(void)
 {
     ret_code_t       err_code;
     ble_lbs_c_init_t lbs_c_init_obj;
@@ -296,7 +296,7 @@ static void lbs_c_init(void)
     lbs_c_init_obj.p_gatt_queue  = &m_ble_gatt_queue;
     lbs_c_init_obj.error_handler = lbs_error_handler;
 
-    err_code = ble_lbs_c_init(&m_ble_mnss_c, &lbs_c_init_obj);
+    err_code = ble_mnss_c_init(&m_ble_mnss_c, &lbs_c_init_obj);
     APP_ERROR_CHECK(err_code);
 }
 
@@ -511,7 +511,7 @@ int main(void)
     scan_init();
     gatt_init();
     db_discovery_init();
-    lbs_c_init();
+    mnss_c_init();
 
     // Start execution.
     NRF_LOG_INFO("Blinky CENTRAL example started.");

@@ -60,7 +60,7 @@ static void gatt_error_handler(uint32_t   nrf_error,
                                void     * p_ctx,
                                uint16_t   conn_handle)
 {
-    ble_lbs_c_t * p_ble_lbs_c = (ble_lbs_c_t *)p_ctx;
+    ble_mnss_c_t * p_ble_lbs_c = (ble_mnss_c_t *)p_ctx;
 
     NRF_LOG_DEBUG("A GATT Client error has occurred on conn_handle: 0X%X", conn_handle);
 
@@ -81,7 +81,7 @@ static void gatt_error_handler(uint32_t   nrf_error,
  * @param[in] p_ble_lbs_c Pointer to the Led Button Client structure.
  * @param[in] p_ble_evt   Pointer to the BLE event received.
  */
-static void on_hvx(ble_lbs_c_t * p_ble_lbs_c, ble_evt_t const * p_ble_evt)
+static void on_hvx(ble_mnss_c_t * p_ble_lbs_c, ble_evt_t const * p_ble_evt)
 {
     // Check if the event is on the link for this instance.
     if (p_ble_lbs_c->conn_handle != p_ble_evt->evt.gattc_evt.conn_handle)
@@ -113,7 +113,7 @@ static void on_hvx(ble_lbs_c_t * p_ble_lbs_c, ble_evt_t const * p_ble_evt)
  * @param[in] p_ble_lbs_c Pointer to the Led Button Client structure.
  * @param[in] p_ble_evt   Pointer to the BLE event received.
  */
-static void on_disconnected(ble_lbs_c_t * p_ble_lbs_c, ble_evt_t const * p_ble_evt)
+static void on_disconnected(ble_mnss_c_t * p_ble_lbs_c, ble_evt_t const * p_ble_evt)
 {
     if (p_ble_lbs_c->conn_handle == p_ble_evt->evt.gap_evt.conn_handle)
     {
@@ -125,11 +125,11 @@ static void on_disconnected(ble_lbs_c_t * p_ble_lbs_c, ble_evt_t const * p_ble_e
 }
 
 
-void ble_mnss_on_db_disc_evt(ble_lbs_c_t * p_ble_lbs_c, ble_db_discovery_evt_t const * p_evt)
+void ble_mnss_on_db_disc_evt(ble_mnss_c_t * p_ble_lbs_c, ble_db_discovery_evt_t const * p_evt)
 {
     // Check if the LED Button Service was discovered.
     if (p_evt->evt_type == BLE_DB_DISCOVERY_COMPLETE &&
-        p_evt->params.discovered_db.srv_uuid.uuid == LBS_UUID_SERVICE &&
+        p_evt->params.discovered_db.srv_uuid.uuid == MNSS_UUID_SERVICE &&
         p_evt->params.discovered_db.srv_uuid.type == p_ble_lbs_c->uuid_type)
     {
         ble_lbs_c_evt_t evt;
@@ -142,10 +142,10 @@ void ble_mnss_on_db_disc_evt(ble_lbs_c_t * p_ble_lbs_c, ble_db_discovery_evt_t c
             const ble_gatt_db_char_t * p_char = &(p_evt->params.discovered_db.charateristics[i]);
             switch (p_char->characteristic.uuid.uuid)
             {
-                case LBS_UUID_LED_CHAR:
+                case MNSS_UUID_LED_CHAR:
                     evt.params.peer_db.led_handle = p_char->characteristic.handle_value;
                     break;
-                case LBS_UUID_BUTTON_CHAR:
+                case MNSS_UUID_BUTTON_CHAR:
                     evt.params.peer_db.button_handle      = p_char->characteristic.handle_value;
                     evt.params.peer_db.button_cccd_handle = p_char->cccd_handle;
                     break;
@@ -173,11 +173,11 @@ void ble_mnss_on_db_disc_evt(ble_lbs_c_t * p_ble_lbs_c, ble_db_discovery_evt_t c
 }
 
 
-uint32_t ble_lbs_c_init(ble_lbs_c_t * p_ble_lbs_c, ble_lbs_c_init_t * p_ble_lbs_c_init)
+uint32_t ble_mnss_c_init(ble_mnss_c_t * p_ble_lbs_c, ble_lbs_c_init_t * p_ble_lbs_c_init)
 {
     uint32_t      err_code;
     ble_uuid_t    lbs_uuid;
-    ble_uuid128_t lbs_base_uuid = {LBS_UUID_BASE};
+    ble_uuid128_t lbs_base_uuid = {MNSS_UUID_BASE};
 
     VERIFY_PARAM_NOT_NULL(p_ble_lbs_c);
     VERIFY_PARAM_NOT_NULL(p_ble_lbs_c_init);
@@ -200,19 +200,19 @@ uint32_t ble_lbs_c_init(ble_lbs_c_t * p_ble_lbs_c, ble_lbs_c_init_t * p_ble_lbs_
     VERIFY_SUCCESS(err_code);
 
     lbs_uuid.type = p_ble_lbs_c->uuid_type;
-    lbs_uuid.uuid = LBS_UUID_SERVICE;
+    lbs_uuid.uuid = MNSS_UUID_SERVICE;
 
     return ble_db_discovery_evt_register(&lbs_uuid);
 }
 
-void ble_lbs_c_on_ble_evt(ble_evt_t const * p_ble_evt, void * p_context)
+void ble_mnss_c_on_ble_evt(ble_evt_t const * p_ble_evt, void * p_context)
 {
     if ((p_context == NULL) || (p_ble_evt == NULL))
     {
         return;
     }
 
-    ble_lbs_c_t * p_ble_lbs_c = (ble_lbs_c_t *)p_context;
+    ble_mnss_c_t * p_ble_lbs_c = (ble_mnss_c_t *)p_context;
 
     switch (p_ble_evt->header.evt_id)
     {
@@ -237,7 +237,7 @@ void ble_lbs_c_on_ble_evt(ble_evt_t const * p_ble_evt, void * p_context)
  *
  * @return NRF_SUCCESS if the CCCD configure was successfully sent to the peer.
  */
-static uint32_t cccd_configure(ble_lbs_c_t * p_ble_lbs_c, bool enable)
+static uint32_t cccd_configure(ble_mnss_c_t * p_ble_lbs_c, bool enable)
 {
     NRF_LOG_DEBUG("Configuring CCCD. CCCD Handle = %d, Connection Handle = %d",
                   p_ble_lbs_c->peer_lbs_db.button_cccd_handle,
@@ -263,7 +263,7 @@ static uint32_t cccd_configure(ble_lbs_c_t * p_ble_lbs_c, bool enable)
 }
 
 
-uint32_t ble_lbs_c_button_notif_enable(ble_lbs_c_t * p_ble_lbs_c)
+uint32_t ble_lbs_c_button_notif_enable(ble_mnss_c_t * p_ble_lbs_c)
 {
     VERIFY_PARAM_NOT_NULL(p_ble_lbs_c);
 
@@ -277,7 +277,7 @@ uint32_t ble_lbs_c_button_notif_enable(ble_lbs_c_t * p_ble_lbs_c)
 }
 
 
-uint32_t ble_lbs_led_status_send(ble_lbs_c_t * p_ble_lbs_c, uint8_t status)
+uint32_t ble_lbs_led_status_send(ble_mnss_c_t * p_ble_lbs_c, uint8_t status)
 {
     VERIFY_PARAM_NOT_NULL(p_ble_lbs_c);
 
@@ -304,7 +304,7 @@ uint32_t ble_lbs_led_status_send(ble_lbs_c_t * p_ble_lbs_c, uint8_t status)
     return nrf_ble_gq_item_add(p_ble_lbs_c->p_gatt_queue, &write_req, p_ble_lbs_c->conn_handle);
 }
 
-uint32_t ble_lbs_c_handles_assign(ble_lbs_c_t    * p_ble_lbs_c,
+uint32_t ble_lbs_c_handles_assign(ble_mnss_c_t    * p_ble_lbs_c,
                                   uint16_t         conn_handle,
                                   const lbs_db_t * p_peer_handles)
 {

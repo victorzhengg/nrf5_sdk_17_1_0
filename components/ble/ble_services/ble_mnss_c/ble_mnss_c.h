@@ -72,34 +72,36 @@
 extern "C" {
 #endif
 
+#define BLE_MNSS_BLE_OBSERVER_PRIO   2
+
 /**@brief   Macro for defining a ble_lbs_c instance.
  *
  * @param   _name   Name of the instance.
  * @hideinitializer
  */
 #define BLE_MNSS_C_DEF(_name)                                                                        \
-static ble_lbs_c_t _name;                                                                           \
+static ble_mnss_c_t _name;                                                                           \
 NRF_SDH_BLE_OBSERVER(_name ## _obs,                                                                 \
-                     BLE_LBS_C_BLE_OBSERVER_PRIO,                                                   \
-                     ble_lbs_c_on_ble_evt, &_name)
+                     BLE_MNSS_BLE_OBSERVER_PRIO,                                                   \
+                     ble_mnss_c_on_ble_evt, &_name)
 
-/**@brief   Macro for defining multiple ble_lbs_c instances.
+/**@brief   Macro for defining multiple ble_mnss_c instances.
  *
  * @param   _name   Name of the array of instances.
  * @param   _cnt    Number of instances to define.
  */
-#define BLE_LBS_C_ARRAY_DEF(_name, _cnt)                                                            \
-static ble_lbs_c_t _name[_cnt];                                                                     \
+#define BLE_MNSS_C_ARRAY_DEF(_name, _cnt)                                                            \
+static ble_mnss_c_t _name[_cnt];                                                                     \
 NRF_SDH_BLE_OBSERVERS(_name ## _obs,                                                                \
-                      BLE_LBS_C_BLE_OBSERVER_PRIO,                                                  \
-                      ble_lbs_c_on_ble_evt, &_name, _cnt)
+                      BLE_MNSS_BLE_OBSERVER_PRIO,                                                  \
+                      ble_mnss_c_on_ble_evt, &_name, _cnt)
 
 
-#define LBS_UUID_BASE        {0x23, 0xD1, 0xBC, 0xEA, 0x5F, 0x78, 0x23, 0x15, \
+#define MNSS_UUID_BASE        {0x23, 0xD1, 0xBC, 0xEA, 0x5F, 0x78, 0x23, 0x15, \
                               0xDE, 0xEF, 0x12, 0x12, 0x00, 0x00, 0x00, 0x00}
-#define LBS_UUID_SERVICE     0x1523
-#define LBS_UUID_BUTTON_CHAR 0x1524
-#define LBS_UUID_LED_CHAR    0x1525
+#define MNSS_UUID_SERVICE     0x1623
+#define MNSS_UUID_BUTTON_CHAR 0x1624
+#define MNSS_UUID_LED_CHAR    0x1625
 
 /**@brief LBS Client event type. */
 typedef enum
@@ -135,17 +137,17 @@ typedef struct
 } ble_lbs_c_evt_t;
 
 // Forward declaration of the ble_lbs_c_t type.
-typedef struct ble_lbs_c_s ble_lbs_c_t;
+typedef struct ble_mnss_c_s ble_mnss_c_t;
 
 /**@brief   Event handler type.
  *
  * @details This is the type of the event handler that is to be provided by the application
  *          of this module in order to receive events.
  */
-typedef void (* ble_lbs_c_evt_handler_t) (ble_lbs_c_t * p_ble_lbs_c, ble_lbs_c_evt_t * p_evt);
+typedef void (* ble_lbs_c_evt_handler_t) (ble_mnss_c_t * p_ble_mnss_c, ble_lbs_c_evt_t * p_evt);
 
 /**@brief LED Button Client structure. */
-struct ble_lbs_c_s
+struct ble_mnss_c_s
 {
     uint16_t                  conn_handle;   /**< Connection handle as provided by the SoftDevice. */
     lbs_db_t                  peer_lbs_db;   /**< Handles related to LBS on the peer. */
@@ -178,7 +180,7 @@ typedef struct
  * @retval    err_code    Otherwise, this function propagates the error code returned by the Database Discovery module API
  *                        @ref ble_db_discovery_evt_register.
  */
-uint32_t ble_lbs_c_init(ble_lbs_c_t * p_ble_lbs_c, ble_lbs_c_init_t * p_ble_lbs_c_init);
+uint32_t ble_mnss_c_init(ble_mnss_c_t * p_ble_lbs_c, ble_lbs_c_init_t * p_ble_lbs_c_init);
 
 
 /**@brief Function for handling BLE events from the SoftDevice.
@@ -190,7 +192,7 @@ uint32_t ble_lbs_c_init(ble_lbs_c_t * p_ble_lbs_c, ble_lbs_c_init_t * p_ble_lbs_
  * @param[in] p_ble_evt     Pointer to the BLE event.
  * @param[in] p_context     Pointer to the LED button client structure.
  */
-void ble_lbs_c_on_ble_evt(ble_evt_t const * p_ble_evt, void * p_context);
+void ble_mnss_c_on_ble_evt(ble_evt_t const * p_ble_evt, void * p_context);
 
 
 /**@brief Function for requesting the peer to start sending notification of the Button
@@ -207,7 +209,7 @@ void ble_lbs_c_on_ble_evt(ble_evt_t const * p_ble_evt, void * p_context);
  * @retval  err_code				Otherwise, this API propagates the error code returned by function
  *          						@ref nrf_ble_gq_item_add.
  */
-uint32_t ble_lbs_c_button_notif_enable(ble_lbs_c_t * p_ble_lbs_c);
+uint32_t ble_lbs_c_button_notif_enable(ble_mnss_c_t * p_ble_lbs_c);
 
 
 /**@brief Function for handling events from the Database Discovery module.
@@ -222,7 +224,7 @@ uint32_t ble_lbs_c_button_notif_enable(ble_lbs_c_t * p_ble_lbs_c);
  * @param[in] p_ble_lbs_c Pointer to the LED Button client structure.
  * @param[in] p_evt Pointer to the event received from the Database Discovery module.
  */
-void ble_mnss_on_db_disc_evt(ble_lbs_c_t * p_ble_lbs_c, const ble_db_discovery_evt_t * p_evt);
+void ble_mnss_on_db_disc_evt(ble_mnss_c_t * p_ble_lbs_c, const ble_db_discovery_evt_t * p_evt);
 
 
 /**@brief     Function for assigning handles to this instance of lbs_c.
@@ -240,7 +242,7 @@ void ble_mnss_on_db_disc_evt(ble_lbs_c_t * p_ble_lbs_c, const ble_db_discovery_e
  *                     @ref nrf_ble_gq_item_add.
  *
  */
-uint32_t ble_lbs_c_handles_assign(ble_lbs_c_t *    p_ble_lbs_c,
+uint32_t ble_lbs_c_handles_assign(ble_mnss_c_t *    p_ble_lbs_c,
                                   uint16_t         conn_handle,
                                   const lbs_db_t * p_peer_handles);
 
@@ -254,7 +256,7 @@ uint32_t ble_lbs_c_handles_assign(ble_lbs_c_t *    p_ble_lbs_c,
  * @retval err_code    Otherwise, this API propagates the error code returned by function
  *                     @ref nrf_ble_gq_conn_handle_register.
  */
-uint32_t ble_lbs_led_status_send(ble_lbs_c_t * p_ble_lbs_c, uint8_t status);
+uint32_t ble_lbs_led_status_send(ble_mnss_c_t * p_ble_lbs_c, uint8_t status);
 
 
 #ifdef __cplusplus
