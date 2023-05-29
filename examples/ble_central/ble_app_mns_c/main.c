@@ -332,9 +332,34 @@ static void button_event_handler(uint8_t pin_no, uint8_t button_action)
 {
     switch (pin_no)
     {
-        case LEDBUTTON_BUTTON_PIN:
+        case BSP_BUTTON_0:
+						if(button_action == 0)
+						{
+								NRF_LOG_INFO("button_event_handler: BSP_BUTTON_0");
+						}
             break;
-
+				
+        case BSP_BUTTON_1:
+						if(button_action == 0)
+						{
+								NRF_LOG_INFO("button_event_handler: BSP_BUTTON_1");
+						}							
+            break;
+				
+        case BSP_BUTTON_2:
+						if(button_action == 0)
+						{
+								NRF_LOG_INFO("button_event_handler: BSP_BUTTON_2");
+						}							
+            break;
+				
+        case BSP_BUTTON_3:
+						if(button_action == 0)
+						{
+								NRF_LOG_INFO("button_event_handler: BSP_BUTTON_3");
+						}							
+            break;
+				
         default:
             APP_ERROR_HANDLER(pin_no);
             break;
@@ -372,7 +397,10 @@ static void buttons_init(void)
     //The array must be static because a pointer to it will be saved in the button handler module.
     static app_button_cfg_t buttons[] =
     {
-        {LEDBUTTON_BUTTON_PIN, false, BUTTON_PULL, button_event_handler}
+        {BSP_BUTTON_0, false, BUTTON_PULL, button_event_handler},
+				{BSP_BUTTON_1, false, BUTTON_PULL, button_event_handler},
+				{BSP_BUTTON_2, false, BUTTON_PULL, button_event_handler},
+				{BSP_BUTTON_3, false, BUTTON_PULL, button_event_handler}
     };
 
     err_code = app_button_init(buttons, ARRAY_SIZE(buttons),

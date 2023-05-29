@@ -47,42 +47,6 @@
 #include "nrf_log.h"
 NRF_LOG_MODULE_REGISTER();
 
-#define WRITE_MESSAGE_LENGTH   BLE_CCCD_VALUE_LEN    /**< Length of the write message for CCCD. */
-
-
-
-/**@brief Function for handling Handle Value Notification received from the SoftDevice.
- *
- * @details This function uses the Handle Value Notification received from the SoftDevice
- *          and checks whether it is a notification of Button state from the peer. If
- *          it is, this function decodes the state of the button and sends it to the
- *          application.
- *
- * @param[in] p_ble_mnss_c Pointer to the Led Button Client structure.
- * @param[in] p_ble_evt   Pointer to the BLE event received.
- */
-static void on_hvx(ble_mnss_c_t * p_ble_mnss_c, ble_evt_t const * p_ble_evt)
-{
-    // Check if the event is on the link for this instance.
-    if (p_ble_mnss_c->conn_handle != p_ble_evt->evt.gattc_evt.conn_handle)
-    {
-        return;
-    }
-    // Check if this is a Button notification.
-    if (p_ble_evt->evt.gattc_evt.params.hvx.handle == p_ble_mnss_c->peer_mnss_db.data_write_handle)
-    {
-        if (p_ble_evt->evt.gattc_evt.params.hvx.len == 1)
-        {
-            ble_mnss_c_evt_t ble_mnss_c_evt;
-
-            ble_mnss_c_evt.evt_type                   = BLE_MNSS_C_EVT_WRITE;
-            ble_mnss_c_evt.conn_handle                = p_ble_mnss_c->conn_handle;
-            ble_mnss_c_evt.params.button.button_state = p_ble_evt->evt.gattc_evt.params.hvx.data[0];
-            p_ble_mnss_c->evt_handler(p_ble_mnss_c, &ble_mnss_c_evt);
-        }
-    }
-}
-
 
 /**@brief Function for handling the Disconnected event received from the SoftDevice.
  *
@@ -192,9 +156,13 @@ void ble_mnss_c_on_ble_evt(ble_evt_t const * p_ble_evt, void * p_context)
 
     switch (p_ble_evt->header.evt_id)
     {
-        case BLE_GATTC_EVT_HVX:
-            on_hvx(p_ble_mnss_c, p_ble_evt);
+        case BLE_GATTC_EVT_WRITE_CMD_TX_COMPLETE:
+						NRF_LOG_INFO("ble_mnss_c_on_ble_evt: BLE_GATTC_EVT_WRITE_CMD_TX_COMPLETE");
             break;
+				
+				case BLE_GATTC_EVT_WRITE_RSP:
+						NRF_LOG_INFO("ble_mnss_c_on_ble_evt: BLE_GATTC_EVT_WRITE_RSP");
+						break;
 
         case BLE_GAP_EVT_DISCONNECTED:
             on_disconnected(p_ble_mnss_c, p_ble_evt);
@@ -222,3 +190,43 @@ uint32_t ble_mnss_c_handles_assign(ble_mnss_c_t    * p_ble_mnss_c,
 }
 
 
+uint32_t ble_mnss_write_data(ble_mnss_c_t * p_ble_mnss_c, ble_mnss_data_t* p_data)
+{
+		NRF_LOG_INFO("ble_mnss_write_data");
+	
+    VERIFY_PARAM_NOT_NULL(p_ble_mnss_c);
+
+    if (p_ble_mnss_c->conn_handle == BLE_CONN_HANDLE_INVALID)
+    {
+        return NRF_ERROR_INVALID_STATE;
+    }
+		
+		static uint8_t write_buf[NRF_BLE_GQ_GATTC_WRITE_MAX_DATA_LEN];
+
+		// Retrieve allocated data.
+		ble_gattc_write_params_t write_params;
+		
+		write_params.p_value = write_buf;
+		write_params.write_op = BLE_GATT_OP_WRITE_CMD;
+		write_params.handle = p_ble_mnss_c->peer_mnss_db.data_write_handle;
+		memcpy(write_buf, p_data, sizeof(ble_mnss_data_t));
+
+		return sd_ble_gattc_write(p_ble_mnss_c->conn_handle, &write_params);
+}
+
+
+uint32_t ble_mnss_read_data(ble_mnss_c_t * p_ble_mnss_c, ble_mnss_data_t* p_data)
+{
+		NRF_LOG_INFO("ble_mnss_read_data");
+	
+    VERIFY_PARAM_NOT_NULL(p_ble_mnss_c);
+
+    if (p_ble_mnss_c->conn_handle == BLE_CONN_HANDLE_INVALID)
+    {
+        return NRF_ERROR_INVALID_STATE;
+    }
+		
+		return sd_ble_gattc_char_values_read(p_ble_mnss_c->conn_handle, 
+			                                   &(p_ble_mnss_c->peer_mnss_db.data_read_handle), 
+																				 1);
+}
