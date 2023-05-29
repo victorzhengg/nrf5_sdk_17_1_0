@@ -39,7 +39,7 @@
  */
 /**@file
  *
- * @defgroup ble_lbs_c LED Button Service Client
+ * @defgroup ble_mnss_c Multi Node Synchronize Service Client
  * @{
  * @ingroup  ble_sdk_srv
  * @brief    The LED Button Service client can be used to set up a LED and read a button state on a
@@ -52,9 +52,9 @@
  * @note    The application must register this module as the BLE event observer by using the
  *          NRF_SDH_BLE_OBSERVER macro. Example:
  *          @code
- *              ble_lbs_c_t instance;
+ *              ble_mnss_c_t instance;
  *              NRF_SDH_BLE_OBSERVER(anything, BLE_LBS_C_BLE_OBSERVER_PRIO,
- *                                   ble_lbs_c_on_ble_evt, &instance);
+ *                                   ble_mnss_c_on_ble_evt, &instance);
  *          @endcode
  */
 
@@ -74,7 +74,7 @@ extern "C" {
 
 #define BLE_MNSS_BLE_OBSERVER_PRIO   2
 
-/**@brief   Macro for defining a ble_lbs_c instance.
+/**@brief   Macro for defining a ble_mnss_c instance.
  *
  * @param   _name   Name of the instance.
  * @hideinitializer
@@ -143,7 +143,7 @@ typedef struct
     } params;
 } ble_mnss_c_evt_t;
 
-// Forward declaration of the ble_lbs_c_t type.
+// Forward declaration of the ble_mnss_c_t type.
 typedef struct ble_mnss_c_s ble_mnss_c_t;
 
 typedef struct ble_mnss_data_s		ble_mnss_data_t;
@@ -152,14 +152,14 @@ typedef struct ble_mnss_data_s		ble_mnss_data_t;
  * @details This is the type of the event handler that is to be provided by the application
  *          of this module in order to receive events.
  */
-typedef void (* ble_lbs_c_evt_handler_t) (ble_mnss_c_t * p_ble_mnss_c, ble_mnss_c_evt_t * p_evt);
+typedef void (* ble_mnss_c_evt_handler_t) (ble_mnss_c_t * p_ble_mnss_c, ble_mnss_c_evt_t * p_evt);
 
 /**@brief LED Button Client structure. */
 struct ble_mnss_c_s
 {
     uint16_t                  conn_handle;   /**< Connection handle as provided by the SoftDevice. */
-    mnss_db_t                 peer_lbs_db;   /**< Handles related to LBS on the peer. */
-    ble_lbs_c_evt_handler_t   evt_handler;   /**< Application event handler to be called when there is an event related to the LED Button service. */
+    mnss_db_t                 peer_mnss_db;   /**< Handles related to LBS on the peer. */
+    ble_mnss_c_evt_handler_t  evt_handler;   /**< Application event handler to be called when there is an event related to the LED Button service. */
     ble_srv_error_handler_t   error_handler; /**< Function to be called in case of an error. */
     uint8_t                   uuid_type;     /**< UUID type. */
     nrf_ble_gq_t            * p_gatt_queue;  /**< Pointer to the BLE GATT Queue instance. */
@@ -168,10 +168,10 @@ struct ble_mnss_c_s
 /**@brief LED Button Client initialization structure. */
 typedef struct
 {
-    ble_lbs_c_evt_handler_t   evt_handler;   /**< Event handler to be called by the LED Button Client module when there is an event related to the LED Button Service. */
+    ble_mnss_c_evt_handler_t   evt_handler;   /**< Event handler to be called by the LED Button Client module when there is an event related to the LED Button Service. */
     nrf_ble_gq_t            * p_gatt_queue;  /**< Pointer to the BLE GATT Queue instance. */
     ble_srv_error_handler_t   error_handler; /**< Function to be called in case of an error. */
-} ble_lbs_c_init_t;
+} ble_mnss_c_init_t;
 
 
 /**@brief Function for initializing the LED Button client module.
@@ -180,15 +180,15 @@ typedef struct
  *          LED Button Service. The module looks for the presence of a LED Button Service instance
  *          at the peer when a discovery is started.
  *
- * @param[in] p_ble_lbs_c      Pointer to the LED Button client structure.
- * @param[in] p_ble_lbs_c_init Pointer to the LED Button initialization structure that contains the
+ * @param[in] p_ble_mnss_c      Pointer to the LED Button client structure.
+ * @param[in] p_ble_mnss_c_init Pointer to the LED Button initialization structure that contains the
  *                             initialization information.
  *
  * @retval    NRF_SUCCESS On successful initialization. 
  * @retval    err_code    Otherwise, this function propagates the error code returned by the Database Discovery module API
  *                        @ref ble_db_discovery_evt_register.
  */
-uint32_t ble_mnss_c_init(ble_mnss_c_t * p_ble_lbs_c, ble_lbs_c_init_t * p_ble_lbs_c_init);
+uint32_t ble_mnss_c_init(ble_mnss_c_t * p_ble_mnss_c, ble_mnss_c_init_t * p_ble_mnss_c_init);
 
 
 /**@brief Function for handling BLE events from the SoftDevice.
@@ -203,21 +203,6 @@ uint32_t ble_mnss_c_init(ble_mnss_c_t * p_ble_lbs_c, ble_lbs_c_init_t * p_ble_lb
 void ble_mnss_c_on_ble_evt(ble_evt_t const * p_ble_evt, void * p_context);
 
 
-/**@brief Function for requesting the peer to start sending notification of the Button
- *        Characteristic.
- *
- * @details This function enables to notification of the Button at the peer
- *          by writing to the CCCD of the Button characteristic.
- *
- * @param[in] p_ble_lbs_c Pointer to the LED Button Client structure.
- *
- * @retval  NRF_SUCCESS 			If the SoftDevice has been requested to write to the CCCD of the peer.
- * @retval  NRF_ERROR_INVALID_STATE If no connection handle has been assigned (@ref ble_lbs_c_handles_assign).
- * @retval  NRF_ERROR_NULL 			If the given parameter is NULL.
- * @retval  err_code				Otherwise, this API propagates the error code returned by function
- *          						@ref nrf_ble_gq_item_add.
- */
-uint32_t ble_lbs_c_button_notif_enable(ble_mnss_c_t * p_ble_lbs_c);
 
 
 /**@brief Function for handling events from the Database Discovery module.
@@ -229,19 +214,19 @@ uint32_t ble_lbs_c_button_notif_enable(ble_mnss_c_t * p_ble_lbs_c);
  *          at the peer. The function also populates the event with service-related information before
  *          providing it to the application.
  *
- * @param[in] p_ble_lbs_c Pointer to the LED Button client structure.
+ * @param[in] p_ble_mnss_c Pointer to the LED Button client structure.
  * @param[in] p_evt Pointer to the event received from the Database Discovery module.
  */
-void ble_mnss_on_db_disc_evt(ble_mnss_c_t * p_ble_lbs_c, const ble_db_discovery_evt_t * p_evt);
+void ble_mnss_on_db_disc_evt(ble_mnss_c_t * p_ble_mnss_c, const ble_db_discovery_evt_t * p_evt);
 
 
-/**@brief     Function for assigning handles to this instance of lbs_c.
+/**@brief     Function for assigning handles to this instance of mnss_c.
  *
  * @details Call this function when a link has been established with a peer to associate the link
  *          to this instance of the module. This makes it possible to handle several links and
  *          associate each link to a particular instance of this module.
  *
- * @param[in] p_ble_lbs_c    Pointer to the LED Button client structure instance for associating the link.
+ * @param[in] p_ble_mnss_c    Pointer to the LED Button client structure instance for associating the link.
  * @param[in] conn_handle    Connection handle to associate with the given LED Button Client Instance.
  * @param[in] p_peer_handles LED Button Service handles found on the peer (from @ref BLE_LBS_C_EVT_DISCOVERY_COMPLETE event).
  *
@@ -250,21 +235,12 @@ void ble_mnss_on_db_disc_evt(ble_mnss_c_t * p_ble_lbs_c, const ble_db_discovery_
  *                     @ref nrf_ble_gq_item_add.
  *
  */
-uint32_t ble_lbs_c_handles_assign(ble_mnss_c_t *    p_ble_lbs_c,
+uint32_t ble_mnss_c_handles_assign(ble_mnss_c_t *    p_ble_mnss_c,
                                   uint16_t         conn_handle,
                                   const mnss_db_t * p_peer_handles);
 
 
-/**@brief Function for writing the LED status to the connected server.
- *
- * @param[in] p_ble_lbs_c Pointer to the LED Button client structure.
- * @param[in] status      LED status to send.
- *
- * @retval NRF_SUCCESS If the status was sent successfully.
- * @retval err_code    Otherwise, this API propagates the error code returned by function
- *                     @ref nrf_ble_gq_conn_handle_register.
- */
-uint32_t ble_lbs_led_status_send(ble_mnss_c_t * p_ble_lbs_c, uint8_t status);
+
 
 
 #ifdef __cplusplus

@@ -119,7 +119,7 @@ void assert_nrf_callback(uint16_t line_num, const uint8_t * p_file_name)
  *
  * @param[in]   nrf_error   Error code containing information about what went wrong.
  */
-static void lbs_error_handler(uint32_t nrf_error)
+static void mnss_error_handler(uint32_t nrf_error)
 {
     APP_ERROR_HANDLER(nrf_error);
 }
@@ -151,22 +151,20 @@ static void scan_start(void)
 
 /**@brief Handles events coming from the LED Button central module.
  */
-static void lbs_c_evt_handler(ble_mnss_c_t * p_lbs_c, ble_mnss_c_evt_t * p_lbs_c_evt)
+static void mnss_c_evt_handler(ble_mnss_c_t * p_mnss_c, ble_mnss_c_evt_t * p_mnss_c_evt)
 {
-    switch (p_lbs_c_evt->evt_type)
+    switch (p_mnss_c_evt->evt_type)
     {
         case BLE_MNSS_C_EVT_DISCOVERY_COMPLETE:
         {
             ret_code_t err_code;
 
-            err_code = ble_lbs_c_handles_assign(&m_ble_mnss_c,
-                                                p_lbs_c_evt->conn_handle,
-                                                &p_lbs_c_evt->params.peer_db);
-            NRF_LOG_INFO("LED Button service discovered on conn_handle 0x%x.", p_lbs_c_evt->conn_handle);
-
-            err_code = app_button_enable();
-            APP_ERROR_CHECK(err_code);
-
+            err_code = ble_mnss_c_handles_assign(&m_ble_mnss_c,
+                                                p_mnss_c_evt->conn_handle,
+                                                &p_mnss_c_evt->params.peer_db);
+						APP_ERROR_CHECK(err_code);
+					
+            NRF_LOG_INFO("LED Button service discovered on conn_handle 0x%x.", p_mnss_c_evt->conn_handle);
         } break; // BLE_LBS_C_EVT_DISCOVERY_COMPLETE
 
         case BLE_MNSS_C_EVT_WRITE:
@@ -207,7 +205,7 @@ static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context)
         case BLE_GAP_EVT_CONNECTED:
         {
             NRF_LOG_INFO("Connected.");
-            err_code = ble_lbs_c_handles_assign(&m_ble_mnss_c, p_gap_evt->conn_handle, NULL);
+            err_code = ble_mnss_c_handles_assign(&m_ble_mnss_c, p_gap_evt->conn_handle, NULL);
             APP_ERROR_CHECK(err_code);
 
             err_code = ble_db_discovery_start(&m_db_disc, p_gap_evt->conn_handle);
@@ -286,13 +284,13 @@ static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context)
 static void mnss_c_init(void)
 {
     ret_code_t       err_code;
-    ble_lbs_c_init_t lbs_c_init_obj;
+    ble_mnss_c_init_t mnss_c_init_obj;
 
-    lbs_c_init_obj.evt_handler   = lbs_c_evt_handler;
-    lbs_c_init_obj.p_gatt_queue  = &m_ble_gatt_queue;
-    lbs_c_init_obj.error_handler = lbs_error_handler;
+    mnss_c_init_obj.evt_handler   = mnss_c_evt_handler;
+    mnss_c_init_obj.p_gatt_queue  = &m_ble_gatt_queue;
+    mnss_c_init_obj.error_handler = mnss_error_handler;
 
-    err_code = ble_mnss_c_init(&m_ble_mnss_c, &lbs_c_init_obj);
+    err_code = ble_mnss_c_init(&m_ble_mnss_c, &mnss_c_init_obj);
     APP_ERROR_CHECK(err_code);
 }
 
@@ -484,11 +482,17 @@ static void idle_state_handle(void)
 
 int main(void)
 {
+		ret_code_t  err_code;
+	
     // Initialize.
     log_init();
     timer_init();
     leds_init();
     buttons_init();
+	
+		err_code = app_button_enable();
+		APP_ERROR_CHECK(err_code);
+	
     power_management_init();
     ble_stack_init();
     scan_init();
