@@ -95,7 +95,7 @@ NRF_BLE_GQ_DEF(m_ble_gatt_queue,                                /**< BLE GATT Qu
                NRF_SDH_BLE_CENTRAL_LINK_COUNT,
                NRF_BLE_GQ_QUEUE_SIZE);
 
-static char const m_target_periph_name[] = "Nordic_Blinky";     /**< Name of the device we try to connect to. This name is searched in the scan report data*/
+static char const m_target_periph_name[] = "Nordic_MNS";     /**< Name of the device we try to connect to. This name is searched in the scan report data*/
 
 
 /**@brief Function to handle asserts in the SoftDevice.
@@ -164,7 +164,7 @@ static void mnss_c_evt_handler(ble_mnss_c_t * p_mnss_c, ble_mnss_c_evt_t * p_mns
                                                 &p_mnss_c_evt->params.peer_db);
 						APP_ERROR_CHECK(err_code);
 					
-            NRF_LOG_INFO("LED Button service discovered on conn_handle 0x%x.", p_mnss_c_evt->conn_handle);
+						NRF_LOG_INFO("mnss_c_evt_handler: BLE_LBS_C_EVT_DISCOVERY_COMPLETE");
         } break; // BLE_LBS_C_EVT_DISCOVERY_COMPLETE
 
         case BLE_MNSS_C_EVT_WRITE:
@@ -204,7 +204,9 @@ static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context)
         // discovery, update LEDs status and resume scanning if necessary. */
         case BLE_GAP_EVT_CONNECTED:
         {
-            NRF_LOG_INFO("Connected.");
+						NRF_LOG_INFO("ble_evt_handler: Connected. address:");
+						NRF_LOG_HEXDUMP_INFO(p_gap_evt->params.connected.peer_addr.addr, 6);
+					
             err_code = ble_mnss_c_handles_assign(&m_ble_mnss_c, p_gap_evt->conn_handle, NULL);
             APP_ERROR_CHECK(err_code);
 

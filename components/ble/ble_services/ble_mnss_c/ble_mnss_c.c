@@ -115,7 +115,7 @@ void ble_mnss_on_db_disc_evt(ble_mnss_c_t * p_ble_mnss_c, ble_db_discovery_evt_t
 
         evt.evt_type    = BLE_MNSS_C_EVT_DISCOVERY_COMPLETE;
         evt.conn_handle = p_evt->conn_handle;
-
+				
         for (uint32_t i = 0; i < p_evt->params.discovered_db.char_count; i++)
         {
             const ble_gatt_db_char_t * p_char = &(p_evt->params.discovered_db.charateristics[i]);
