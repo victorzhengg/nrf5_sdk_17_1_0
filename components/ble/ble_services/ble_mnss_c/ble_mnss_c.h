@@ -77,7 +77,7 @@ extern "C" {
  * @param   _name   Name of the instance.
  * @hideinitializer
  */
-#define BLE_LBS_C_DEF(_name)                                                                        \
+#define BLE_MNSS_C_DEF(_name)                                                                        \
 static ble_lbs_c_t _name;                                                                           \
 NRF_SDH_BLE_OBSERVER(_name ## _obs,                                                                 \
                      BLE_LBS_C_BLE_OBSERVER_PRIO,                                                   \
@@ -222,7 +222,7 @@ uint32_t ble_lbs_c_button_notif_enable(ble_lbs_c_t * p_ble_lbs_c);
  * @param[in] p_ble_lbs_c Pointer to the LED Button client structure.
  * @param[in] p_evt Pointer to the event received from the Database Discovery module.
  */
-void ble_lbs_on_db_disc_evt(ble_lbs_c_t * p_ble_lbs_c, const ble_db_discovery_evt_t * p_evt);
+void ble_mnss_on_db_disc_evt(ble_lbs_c_t * p_ble_lbs_c, const ble_db_discovery_evt_t * p_evt);
 
 
 /**@brief     Function for assigning handles to this instance of lbs_c.

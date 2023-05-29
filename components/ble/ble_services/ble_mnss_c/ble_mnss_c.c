@@ -38,9 +38,8 @@
  *
  */
 #include "sdk_common.h"
-#if NRF_MODULE_ENABLED(BLE_LBS_C)
 
-#include "ble_lbs_c.h"
+#include "ble_mnss_c.h"
 #include "ble_db_discovery.h"
 #include "ble_types.h"
 #include "ble_gattc.h"
@@ -126,7 +125,7 @@ static void on_disconnected(ble_lbs_c_t * p_ble_lbs_c, ble_evt_t const * p_ble_e
 }
 
 
-void ble_lbs_on_db_disc_evt(ble_lbs_c_t * p_ble_lbs_c, ble_db_discovery_evt_t const * p_evt)
+void ble_mnss_on_db_disc_evt(ble_lbs_c_t * p_ble_lbs_c, ble_db_discovery_evt_t const * p_evt)
 {
     // Check if the LED Button Service was discovered.
     if (p_evt->evt_type == BLE_DB_DISCOVERY_COMPLETE &&
@@ -319,4 +318,4 @@ uint32_t ble_lbs_c_handles_assign(ble_lbs_c_t    * p_ble_lbs_c,
     return nrf_ble_gq_conn_handle_register(p_ble_lbs_c->p_gatt_queue, conn_handle);
 }
 
-#endif // NRF_MODULE_ENABLED(BLE_LBS_C)
+

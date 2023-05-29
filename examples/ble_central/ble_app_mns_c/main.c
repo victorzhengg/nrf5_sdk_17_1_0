@@ -59,7 +59,7 @@
 #include "ble_advertising.h"
 #include "ble_conn_params.h"
 #include "ble_db_discovery.h"
-#include "ble_lbs_c.h"
+#include "ble_mnss_c.h"
 #include "nrf_ble_gatt.h"
 #include "nrf_ble_scan.h"
 
@@ -88,7 +88,7 @@
 #define APP_BLE_OBSERVER_PRIO           3                                   /**< Application's BLE observer priority. You shouldn't need to modify this value. */
 
 NRF_BLE_SCAN_DEF(m_scan);                                       /**< Scanning module instance. */
-BLE_LBS_C_DEF(m_ble_lbs_c);                                     /**< Main structure used by the LBS client module. */
+BLE_MNSS_C_DEF(m_ble_mnss_c);                                     /**< Main structure used by the LBS client module. */
 NRF_BLE_GATT_DEF(m_gatt);                                       /**< GATT module instance. */
 BLE_DB_DISCOVERY_DEF(m_db_disc);                                /**< DB discovery module instance. */
 NRF_BLE_GQ_DEF(m_ble_gatt_queue,                                /**< BLE GATT Queue instance. */
@@ -159,7 +159,7 @@ static void lbs_c_evt_handler(ble_lbs_c_t * p_lbs_c, ble_lbs_c_evt_t * p_lbs_c_e
         {
             ret_code_t err_code;
 
-            err_code = ble_lbs_c_handles_assign(&m_ble_lbs_c,
+            err_code = ble_lbs_c_handles_assign(&m_ble_mnss_c,
                                                 p_lbs_c_evt->conn_handle,
                                                 &p_lbs_c_evt->params.peer_db);
             NRF_LOG_INFO("LED Button service discovered on conn_handle 0x%x.", p_lbs_c_evt->conn_handle);
@@ -211,7 +211,7 @@ static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context)
         case BLE_GAP_EVT_CONNECTED:
         {
             NRF_LOG_INFO("Connected.");
-            err_code = ble_lbs_c_handles_assign(&m_ble_lbs_c, p_gap_evt->conn_handle, NULL);
+            err_code = ble_lbs_c_handles_assign(&m_ble_mnss_c, p_gap_evt->conn_handle, NULL);
             APP_ERROR_CHECK(err_code);
 
             err_code = ble_db_discovery_start(&m_db_disc, p_gap_evt->conn_handle);
@@ -296,7 +296,7 @@ static void lbs_c_init(void)
     lbs_c_init_obj.p_gatt_queue  = &m_ble_gatt_queue;
     lbs_c_init_obj.error_handler = lbs_error_handler;
 
-    err_code = ble_lbs_c_init(&m_ble_lbs_c, &lbs_c_init_obj);
+    err_code = ble_lbs_c_init(&m_ble_mnss_c, &lbs_c_init_obj);
     APP_ERROR_CHECK(err_code);
 }
 
@@ -339,7 +339,7 @@ static void button_event_handler(uint8_t pin_no, uint8_t button_action)
     switch (pin_no)
     {
         case LEDBUTTON_BUTTON_PIN:
-            err_code = ble_lbs_led_status_send(&m_ble_lbs_c, button_action);
+            err_code = ble_lbs_led_status_send(&m_ble_mnss_c, button_action);
             if (err_code != NRF_SUCCESS &&
                 err_code != BLE_ERROR_INVALID_CONN_HANDLE &&
                 err_code != NRF_ERROR_INVALID_STATE)
@@ -408,7 +408,7 @@ static void buttons_init(void)
  */
 static void db_disc_handler(ble_db_discovery_evt_t * p_evt)
 {
-    ble_lbs_on_db_disc_evt(&m_ble_lbs_c, p_evt);
+    ble_mnss_on_db_disc_evt(&m_ble_mnss_c, p_evt);
 }
 
 
