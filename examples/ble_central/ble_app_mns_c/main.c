@@ -151,11 +151,11 @@ static void scan_start(void)
 
 /**@brief Handles events coming from the LED Button central module.
  */
-static void lbs_c_evt_handler(ble_mnss_c_t * p_lbs_c, ble_lbs_c_evt_t * p_lbs_c_evt)
+static void lbs_c_evt_handler(ble_mnss_c_t * p_lbs_c, ble_mnss_c_evt_t * p_lbs_c_evt)
 {
     switch (p_lbs_c_evt->evt_type)
     {
-        case BLE_LBS_C_EVT_DISCOVERY_COMPLETE:
+        case BLE_MNSS_C_EVT_DISCOVERY_COMPLETE:
         {
             ret_code_t err_code;
 
@@ -167,24 +167,20 @@ static void lbs_c_evt_handler(ble_mnss_c_t * p_lbs_c, ble_lbs_c_evt_t * p_lbs_c_
             err_code = app_button_enable();
             APP_ERROR_CHECK(err_code);
 
-            // LED Button service discovered. Enable notification of Button.
-            err_code = ble_lbs_c_button_notif_enable(p_lbs_c);
-            APP_ERROR_CHECK(err_code);
         } break; // BLE_LBS_C_EVT_DISCOVERY_COMPLETE
 
-        case BLE_LBS_C_EVT_BUTTON_NOTIFICATION:
+        case BLE_MNSS_C_EVT_WRITE:
         {
-            NRF_LOG_INFO("Button state changed on peer to 0x%x.", p_lbs_c_evt->params.button.button_state);
-            if (p_lbs_c_evt->params.button.button_state)
-            {
-                bsp_board_led_on(LEDBUTTON_LED);
-            }
-            else
-            {
-                bsp_board_led_off(LEDBUTTON_LED);
-            }
+            NRF_LOG_INFO("BLE_MNSS_C_EVT_WRITE.");
+ 
         } break; // BLE_LBS_C_EVT_BUTTON_NOTIFICATION
 
+				case BLE_MNSS_C_EVT_READ:
+        {
+            NRF_LOG_INFO("BLE_MNSS_C_EVT_READ");
+ 
+        } break; // BLE_LBS_C_EVT_BUTTON_NOTIFICATION
+				
         default:
             // No implementation needed.
             break;
@@ -334,22 +330,9 @@ static void ble_stack_init(void)
  */
 static void button_event_handler(uint8_t pin_no, uint8_t button_action)
 {
-    ret_code_t err_code;
-
     switch (pin_no)
     {
         case LEDBUTTON_BUTTON_PIN:
-            err_code = ble_lbs_led_status_send(&m_ble_mnss_c, button_action);
-            if (err_code != NRF_SUCCESS &&
-                err_code != BLE_ERROR_INVALID_CONN_HANDLE &&
-                err_code != NRF_ERROR_INVALID_STATE)
-            {
-                APP_ERROR_CHECK(err_code);
-            }
-            if (err_code == NRF_SUCCESS)
-            {
-                NRF_LOG_INFO("LBS write LED state %d", button_action);
-            }
             break;
 
         default:
