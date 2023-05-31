@@ -575,19 +575,34 @@ static void button_event_handler(uint8_t pin_no, uint8_t button_action)
 {
   switch (pin_no)
     {
-        case LEDBUTTON_BUTTON:
-            NRF_LOG_INFO("Send button state change.");
-				    
-//            err_code = ble_lbs_on_button_change(m_conn_handle, &m_lbs, button_action);
-//            if (err_code != NRF_SUCCESS &&
-//                err_code != BLE_ERROR_INVALID_CONN_HANDLE &&
-//                err_code != NRF_ERROR_INVALID_STATE &&
-//                err_code != BLE_ERROR_GATTS_SYS_ATTR_MISSING)
-//            {
-//                APP_ERROR_CHECK(err_code);
-//            }
+        case BSP_BUTTON_0:
+				    if(button_action == 0)
+						{
+								NRF_LOG_INFO("button_event_handler: BSP_BUTTON_0");
+						}
+            break;
+						
+        case BSP_BUTTON_1:
+				    if(button_action == 0)
+						{
+								NRF_LOG_INFO("button_event_handler: BSP_BUTTON_1");
+						}
+            break;
+						
+        case BSP_BUTTON_2:
+				    if(button_action == 0)
+						{
+								NRF_LOG_INFO("button_event_handler: BSP_BUTTON_2");
+						}
             break;
 
+        case BSP_BUTTON_3:
+				    if(button_action == 0)
+						{
+								NRF_LOG_INFO("button_event_handler: BSP_BUTTON_3");
+						}
+            break;
+						
         default:
             APP_ERROR_HANDLER(pin_no);
             break;
@@ -604,7 +619,10 @@ static void buttons_init(void)
     //The array must be static because a pointer to it will be saved in the button handler module.
     static app_button_cfg_t buttons[] =
     {
-        {LEDBUTTON_BUTTON, false, BUTTON_PULL, button_event_handler}
+        {BSP_BUTTON_0, false, BUTTON_PULL, button_event_handler},
+				{BSP_BUTTON_1, false, BUTTON_PULL, button_event_handler},
+				{BSP_BUTTON_2, false, BUTTON_PULL, button_event_handler},
+				{BSP_BUTTON_3, false, BUTTON_PULL, button_event_handler}
     };
 
     err_code = app_button_init(buttons, ARRAY_SIZE(buttons),
@@ -668,7 +686,7 @@ int main(void)
     conn_params_init();
 
     // Start execution.
-    NRF_LOG_INFO("Blinky example started.");
+    NRF_LOG_INFO("Multi Node Synchronize example started.");
     advertising_start();
 
     // Enter main loop.
