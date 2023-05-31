@@ -129,7 +129,7 @@ uint32_t ble_mnss_init(ble_mnss_t * p_mnss, const ble_mnss_init_t * p_mnss_init)
 
     // add data read characteristic.
     memset(&add_char_params, 0, sizeof(add_char_params));
-    add_char_params.uuid              = MNSS_UUID_WRITE_CHAR;
+    add_char_params.uuid              = MNSS_UUID_READ_CHAR;
     add_char_params.uuid_type         = p_mnss->uuid_type;
     add_char_params.init_len          = sizeof(ble_mnss_data_t);
     add_char_params.max_len           = sizeof(ble_mnss_data_t);
