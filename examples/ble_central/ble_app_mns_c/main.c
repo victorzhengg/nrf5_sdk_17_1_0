@@ -322,7 +322,7 @@ static void ble_stack_init(void)
     NRF_SDH_BLE_OBSERVER(m_ble_observer, APP_BLE_OBSERVER_PRIO, ble_evt_handler, NULL);
 }
 
-
+ble_mnss_data_t m_mnss = {0x5A000001,0,1000};
 /**@brief Function for handling events from the button handler module.
  *
  * @param[in] pin_no        The pin that the event applies to.
@@ -344,6 +344,7 @@ static void button_event_handler(uint8_t pin_no, uint8_t button_action)
 						if(button_action == 0)
 						{
 								NRF_LOG_INFO("button_event_handler: BSP_BUTTON_1");
+								ble_mnss_write_data(&m_ble_mnss_c, &m_mnss);
 						}							
             break;
 				

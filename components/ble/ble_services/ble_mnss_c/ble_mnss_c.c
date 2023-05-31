@@ -149,14 +149,20 @@ uint32_t ble_mnss_c_init(ble_mnss_c_t * p_ble_mnss_c, ble_mnss_c_init_t * p_ble_
     return ble_db_discovery_evt_register(&mnss_uuid);
 }
 
+uint8_t rx_buf[64];
+
 void ble_mnss_c_on_ble_evt(ble_evt_t const * p_ble_evt, void * p_context)
 {
+		const ble_gattc_evt_read_rsp_t * p_val;
+		ble_mnss_c_t * p_ble_mnss_c;
+		uint16_t len;
+			
     if ((p_context == NULL) || (p_ble_evt == NULL))
     {
         return;
     }
 
-    ble_mnss_c_t * p_ble_mnss_c = (ble_mnss_c_t *)p_context;
+    p_ble_mnss_c = (ble_mnss_c_t *)p_context;
 
     switch (p_ble_evt->header.evt_id)
     {
@@ -164,8 +170,14 @@ void ble_mnss_c_on_ble_evt(ble_evt_t const * p_ble_evt, void * p_context)
 						NRF_LOG_INFO("ble_mnss_c_on_ble_evt: BLE_GATTC_EVT_WRITE_CMD_TX_COMPLETE");
             break;
 				
-				case BLE_GATTC_EVT_WRITE_RSP:
-						NRF_LOG_INFO("ble_mnss_c_on_ble_evt: BLE_GATTC_EVT_WRITE_RSP");
+				case BLE_GATTC_EVT_READ_RSP:
+						NRF_LOG_INFO("ble_mnss_c_on_ble_evt: BLE_GATTC_EVT_READ_RSP");
+						p_val = &p_ble_evt->evt.gattc_evt.params.read_rsp;
+						len = p_val->len;
+						NRF_LOG_INFO("received %d data:", len);
+						memcpy(rx_buf, p_val->data, len);
+						NRF_LOG_HEXDUMP_INFO(rx_buf, len);
+				
 						break;
 
         case BLE_GAP_EVT_DISCONNECTED:
@@ -196,6 +208,8 @@ uint32_t ble_mnss_c_handles_assign(ble_mnss_c_t    * p_ble_mnss_c,
 
 uint32_t ble_mnss_write_data(ble_mnss_c_t * p_ble_mnss_c, ble_mnss_data_t* p_data)
 {
+		uint32_t error;
+	
 		NRF_LOG_INFO("ble_mnss_write_data");
 	
     VERIFY_PARAM_NOT_NULL(p_ble_mnss_c);
@@ -209,20 +223,24 @@ uint32_t ble_mnss_write_data(ble_mnss_c_t * p_ble_mnss_c, ble_mnss_data_t* p_dat
 
 		// Retrieve allocated data.
 		ble_gattc_write_params_t write_params;
+		memset(&write_params, 0, sizeof(ble_gattc_write_params_t));
 		
 		write_params.p_value = write_buf;
+		memcpy(write_buf, p_data, sizeof(ble_gattc_write_params_t));
+		
 		write_params.write_op = BLE_GATT_OP_WRITE_CMD;
 		write_params.handle = p_ble_mnss_c->peer_mnss_db.data_write_handle;
-		memcpy(write_buf, p_data, sizeof(ble_mnss_data_t));
+		write_params.len = sizeof(ble_gattc_write_params_t);
 
-		return sd_ble_gattc_write(p_ble_mnss_c->conn_handle, &write_params);
+		error = sd_ble_gattc_write(p_ble_mnss_c->conn_handle, &write_params);
+		NRF_LOG_INFO("sd_ble_gattc_write: error=%d", error);
+		return error;
 }
 
 
 uint32_t ble_mnss_read_data(ble_mnss_c_t * p_ble_mnss_c)
 {
 		uint32_t error;
-		NRF_LOG_INFO("ble_mnss_read_data");
 	
     VERIFY_PARAM_NOT_NULL(p_ble_mnss_c);
 
@@ -230,11 +248,10 @@ uint32_t ble_mnss_read_data(ble_mnss_c_t * p_ble_mnss_c)
     {
         return NRF_ERROR_INVALID_STATE;
     }
-		NRF_LOG_INFO("p_ble_mnss_c->conn_handle = %d", p_ble_mnss_c->conn_handle);
-		NRF_LOG_INFO("p_ble_mnss_c->peer_mnss_db.data_read_handle = %d", p_ble_mnss_c->peer_mnss_db.data_read_handle);
-		error = sd_ble_gattc_char_values_read(p_ble_mnss_c->conn_handle, 
-			                                   &(p_ble_mnss_c->peer_mnss_db.data_read_handle), 
-																				 1);
-		NRF_LOG_INFO("sd_ble_gattc_char_values_read: error=%d", error);
+
+		error = sd_ble_gattc_read(p_ble_mnss_c->conn_handle, 
+			                        p_ble_mnss_c->peer_mnss_db.data_read_handle, 
+															0);
+		NRF_LOG_INFO("sd_ble_gattc_read: error=%d", error);
 		return error;
 }
