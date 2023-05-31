@@ -240,7 +240,11 @@ uint32_t ble_mnss_c_handles_assign(ble_mnss_c_t *    p_ble_mnss_c,
                                   const mnss_db_t * p_peer_handles);
 
 
+uint32_t ble_mnss_write_data(ble_mnss_c_t * p_ble_mnss_c, ble_mnss_data_t* p_data);
 
+
+
+uint32_t ble_mnss_read_data(ble_mnss_c_t * p_ble_mnss_c);
 
 
 #ifdef __cplusplus

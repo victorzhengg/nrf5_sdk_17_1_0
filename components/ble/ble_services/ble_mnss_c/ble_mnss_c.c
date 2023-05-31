@@ -87,9 +87,11 @@ void ble_mnss_on_db_disc_evt(ble_mnss_c_t * p_ble_mnss_c, ble_db_discovery_evt_t
             {
                 case MNSS_UUID_WRITE_CHAR:
                     evt.params.peer_db.data_write_handle = p_char->characteristic.handle_value;
+										NRF_LOG_INFO("evt.params.peer_db.data_write_handle = %d", evt.params.peer_db.data_write_handle);
                     break;
                 case MNSS_UUID_READ_CHAR:
                     evt.params.peer_db.data_read_handle = p_char->characteristic.handle_value;
+										NRF_LOG_INFO("evt.params.peer_db.data_read_handle = %d", evt.params.peer_db.data_read_handle);
                     break;
 
                 default:
@@ -105,6 +107,8 @@ void ble_mnss_on_db_disc_evt(ble_mnss_c_t * p_ble_mnss_c, ble_db_discovery_evt_t
                 (p_ble_mnss_c->peer_mnss_db.data_read_handle == BLE_GATT_HANDLE_INVALID))
             {
                 p_ble_mnss_c->peer_mnss_db = evt.params.peer_db;
+								NRF_LOG_INFO("p_ble_mnss_c->peer_mnss_db.data_write_handle = %d", p_ble_mnss_c->peer_mnss_db.data_write_handle);
+								NRF_LOG_INFO("p_ble_mnss_c->peer_mnss_db.data_read_handle = %d", p_ble_mnss_c->peer_mnss_db.data_read_handle);
             }
         }
 
@@ -215,8 +219,9 @@ uint32_t ble_mnss_write_data(ble_mnss_c_t * p_ble_mnss_c, ble_mnss_data_t* p_dat
 }
 
 
-uint32_t ble_mnss_read_data(ble_mnss_c_t * p_ble_mnss_c, ble_mnss_data_t* p_data)
+uint32_t ble_mnss_read_data(ble_mnss_c_t * p_ble_mnss_c)
 {
+		uint32_t error;
 		NRF_LOG_INFO("ble_mnss_read_data");
 	
     VERIFY_PARAM_NOT_NULL(p_ble_mnss_c);
@@ -225,8 +230,11 @@ uint32_t ble_mnss_read_data(ble_mnss_c_t * p_ble_mnss_c, ble_mnss_data_t* p_data
     {
         return NRF_ERROR_INVALID_STATE;
     }
-		
-		return sd_ble_gattc_char_values_read(p_ble_mnss_c->conn_handle, 
+		NRF_LOG_INFO("p_ble_mnss_c->conn_handle = %d", p_ble_mnss_c->conn_handle);
+		NRF_LOG_INFO("p_ble_mnss_c->peer_mnss_db.data_read_handle = %d", p_ble_mnss_c->peer_mnss_db.data_read_handle);
+		error = sd_ble_gattc_char_values_read(p_ble_mnss_c->conn_handle, 
 			                                   &(p_ble_mnss_c->peer_mnss_db.data_read_handle), 
 																				 1);
+		NRF_LOG_INFO("sd_ble_gattc_char_values_read: error=%d", error);
+		return error;
 }

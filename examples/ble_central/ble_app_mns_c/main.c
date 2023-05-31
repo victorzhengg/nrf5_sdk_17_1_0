@@ -336,6 +336,7 @@ static void button_event_handler(uint8_t pin_no, uint8_t button_action)
 						if(button_action == 0)
 						{
 								NRF_LOG_INFO("button_event_handler: BSP_BUTTON_0");
+								ble_mnss_read_data(&m_ble_mnss_c);
 						}
             break;
 				
@@ -531,7 +532,7 @@ int main(void)
     mnss_c_init();
 
     // Start execution.
-    NRF_LOG_INFO("Blinky CENTRAL example started.");
+    NRF_LOG_INFO("Multi Node Synchronize CENTRAL example started.");
     scan_start();
 
     // Turn on the LED to signal scanning.
