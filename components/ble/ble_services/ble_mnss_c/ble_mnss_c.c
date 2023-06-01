@@ -219,7 +219,7 @@ uint32_t ble_mnss_write_data(ble_mnss_c_t * p_ble_mnss_c, ble_mnss_data_t* p_dat
         return NRF_ERROR_INVALID_STATE;
     }
 		
-		static uint8_t write_buf[NRF_BLE_GQ_GATTC_WRITE_MAX_DATA_LEN];
+		static uint8_t write_buf[sizeof(ble_gattc_write_params_t)];
 
 		// Retrieve allocated data.
 		ble_gattc_write_params_t write_params;

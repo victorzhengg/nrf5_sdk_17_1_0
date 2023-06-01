@@ -67,6 +67,7 @@
 #include "ble_srv_common.h"
 #include "nrf_ble_gq.h"
 #include "nrf_sdh_ble.h"
+#include "ble_mnss.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -124,12 +125,6 @@ typedef struct
     uint16_t data_read_handle;      /**< Handle of the Button characteristic as provided by the SoftDevice. */
 } mnss_db_t;
 
-struct ble_mnss_data_s
-{
-    uint32_t sn; /**< serial number */
-	  uint32_t counter_value; /**< counter value*/
-		uint32_t period; /**< period value*/
-};
 
 /**@brief LED Button Event structure. */
 typedef struct
@@ -146,7 +141,6 @@ typedef struct
 // Forward declaration of the ble_mnss_c_t type.
 typedef struct ble_mnss_c_s ble_mnss_c_t;
 
-typedef struct ble_mnss_data_s		ble_mnss_data_t;
 /**@brief   Event handler type.
  *
  * @details This is the type of the event handler that is to be provided by the application

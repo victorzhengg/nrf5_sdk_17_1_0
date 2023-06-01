@@ -60,6 +60,10 @@
 #include "app_timer.h"
 #include "app_button.h"
 #include "ble_mnss.h"
+#include "ble_mnss_c.h"
+#include "ble_db_discovery.h"
+
+#include "nrf_ble_scan.h"
 #include "nrf_ble_gatt.h"
 #include "nrf_ble_qwr.h"
 #include "nrf_pwr_mgmt.h"
@@ -100,16 +104,29 @@
 #define DEAD_BEEF                       0xDEADBEEF                              /**< Value used as error code on stack dump, can be used to identify stack location on stack unwind. */
 
 
+
+
+#define NRF_BLE_GQ_QUEUE_SIZE 4
+#define MNS_TIMER_PERIOD      APP_TIMER_TICKS(20)       /*multi node synchronize */
+#define MNSS_THRESHOLD   5
+
+
+
 BLE_MNSS_DEF(m_mnss);                                                             /**< LED Button Service instance. */
+BLE_MNSS_C_DEF(m_ble_mnss_c); 
+
 NRF_BLE_GATT_DEF(m_gatt);                                                       /**< GATT module instance. */
 NRF_BLE_QWR_DEF(m_qwr);                                                         /**< Context for the Queued Write module.*/
-
+NRF_BLE_GQ_DEF(m_ble_gatt_queue,                                /**< BLE GATT Queue instance. */
+               NRF_SDH_BLE_CENTRAL_LINK_COUNT,
+               NRF_BLE_GQ_QUEUE_SIZE);
+NRF_BLE_SCAN_DEF(m_scan);  
 
 APP_TIMER_DEF(m_mns_timer);
-#define MNS_TIMER_PERIOD      APP_TIMER_TICKS(20)       /*multi node synchronize */    
 
 
-#define MNSS_THRESHOLD   5
+
+static char const m_target_periph_name[] = "Nordic_MNS";     /**< Name of the device we try to connect to. This name is searched in the scan report data*/
 static uint16_t m_conn_handle[NRF_SDH_BLE_PERIPHERAL_LINK_COUNT] = {0};         /**< Handle of the current connection. */
 static uint16_t m_periph_link_cnt = 0;
 static ble_mnss_data_t m_mnss_data = {
@@ -315,26 +332,6 @@ static void mnss_write_handler(uint16_t conn_handle, ble_mnss_t* p_mnss, ble_mns
 }
 
 
-/**@brief Function for initializing services that will be used by the application.
- */
-static void services_init(void)
-{
-    ret_code_t         err_code;
-    ble_mnss_init_t    init     = {0};
-    nrf_ble_qwr_init_t qwr_init = {0};
-
-    // Initialize Queued Write Module.
-    qwr_init.error_handler = nrf_qwr_error_handler;
-
-    err_code = nrf_ble_qwr_init(&m_qwr, &qwr_init);
-    APP_ERROR_CHECK(err_code);
-
-    // Initialize LBS.
-    init.data_write_handler = mnss_write_handler;
-
-    err_code = ble_mnss_init(&m_mnss, &init);
-    APP_ERROR_CHECK(err_code);
-}
 
 
 /**@brief Function for handling the Connection Parameters Module.
@@ -707,7 +704,137 @@ static void mns_timer_handler(void * p_context)
 															 &gatt_value);
 		}
 }
+
+/**@brief Function for handling Scaning events.
+ *
+ * @param[in]   p_scan_evt   Scanning event.
+ */
+static void scan_evt_handler(scan_evt_t const * p_scan_evt)
+{
+    ret_code_t err_code;
+
+    switch(p_scan_evt->scan_evt_id)
+    {
+        case NRF_BLE_SCAN_EVT_CONNECTING_ERROR:
+            err_code = p_scan_evt->params.connecting_err.err_code;
+            APP_ERROR_CHECK(err_code);
+            break;
+        default:
+          break;
+    }
+}
+
+static void scan_init(void)
+{
+    ret_code_t          err_code;
+    nrf_ble_scan_init_t init_scan;
+
+    memset(&init_scan, 0, sizeof(init_scan));
+
+    init_scan.connect_if_match = true;
+    init_scan.conn_cfg_tag     = APP_BLE_CONN_CFG_TAG;
+
+    err_code = nrf_ble_scan_init(&m_scan, &init_scan, scan_evt_handler);
+    APP_ERROR_CHECK(err_code);
+
+    // Setting filters for scanning.
+    err_code = nrf_ble_scan_filters_enable(&m_scan, NRF_BLE_SCAN_NAME_FILTER, false);
+    APP_ERROR_CHECK(err_code);
+
+    err_code = nrf_ble_scan_filter_set(&m_scan, SCAN_NAME_FILTER, m_target_periph_name);
+    APP_ERROR_CHECK(err_code);	
+}
 	
+static void db_discovery_init(void)
+{
+}
+
+static void scan_start(void)
+{
+}
+
+
+/**@brief Handles events coming from the LED Button central module.
+ */
+static void mnss_c_evt_handler(ble_mnss_c_t * p_mnss_c, ble_mnss_c_evt_t * p_mnss_c_evt)
+{
+    switch (p_mnss_c_evt->evt_type)
+    {
+        case BLE_MNSS_C_EVT_DISCOVERY_COMPLETE:
+        {
+            ret_code_t err_code;
+
+            err_code = ble_mnss_c_handles_assign(&m_ble_mnss_c,
+                                                p_mnss_c_evt->conn_handle,
+                                                &p_mnss_c_evt->params.peer_db);
+						APP_ERROR_CHECK(err_code);
+					
+						NRF_LOG_INFO("mnss_c_evt_handler: BLE_LBS_C_EVT_DISCOVERY_COMPLETE");
+        } break; // BLE_LBS_C_EVT_DISCOVERY_COMPLETE
+
+        case BLE_MNSS_C_EVT_WRITE:
+        {
+            NRF_LOG_INFO("BLE_MNSS_C_EVT_WRITE.");
+ 
+        } break; // BLE_LBS_C_EVT_BUTTON_NOTIFICATION
+
+				case BLE_MNSS_C_EVT_READ:
+        {
+            NRF_LOG_INFO("BLE_MNSS_C_EVT_READ");
+ 
+        } break; // BLE_LBS_C_EVT_BUTTON_NOTIFICATION
+				
+        default:
+            // No implementation needed.
+            break;
+    }
+}
+
+/**@brief Function for handling the LED Button Service client errors.
+ *
+ * @param[in]   nrf_error   Error code containing information about what went wrong.
+ */
+static void mnss_error_handler(uint32_t nrf_error)
+{
+    APP_ERROR_HANDLER(nrf_error);
+}
+
+/**@brief Function for initializing services that will be used by the application.
+ */
+static void services_init(void)
+{
+    ret_code_t         err_code;
+    ble_mnss_init_t    init     = {0};
+    nrf_ble_qwr_init_t qwr_init = {0};
+
+    // Initialize Queued Write Module.
+    qwr_init.error_handler = nrf_qwr_error_handler;
+
+    err_code = nrf_ble_qwr_init(&m_qwr, &qwr_init);
+    APP_ERROR_CHECK(err_code);
+
+    // Initialize LBS.
+    init.data_write_handler = mnss_write_handler;
+
+		
+		/*peripheral service initial*/
+    err_code = ble_mnss_init(&m_mnss, &init);
+    APP_ERROR_CHECK(err_code);
+		
+		
+		/*central service initial*/
+    ble_mnss_c_init_t mnss_c_init_obj;
+
+    mnss_c_init_obj.evt_handler   = mnss_c_evt_handler;
+    mnss_c_init_obj.p_gatt_queue  = &m_ble_gatt_queue;
+    mnss_c_init_obj.error_handler = mnss_error_handler;
+
+    err_code = ble_mnss_c_init(&m_ble_mnss_c, &mnss_c_init_obj);
+    APP_ERROR_CHECK(err_code);
+}
+
+
+
 /**@brief Function for application main entry.
  */
 int main(void)
@@ -727,14 +854,18 @@ int main(void)
 	
     power_management_init();
     ble_stack_init();
+		scan_init();
     gap_params_init();
     gatt_init();
     services_init();
     advertising_init();
     conn_params_init();
+		db_discovery_init();
+    
 
     // Start execution.
     NRF_LOG_INFO("Multi Node Synchronize example started.");
+		scan_start();
     advertising_start();
 
     // Enter main loop.
