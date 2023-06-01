@@ -110,6 +110,14 @@ APP_TIMER_DEF(m_mns_timer);
 
 
 static uint16_t m_conn_handle[NRF_SDH_BLE_PERIPHERAL_LINK_COUNT] = {0};         /**< Handle of the current connection. */
+static uint16_t m_periph_link_cnt = 0;
+static ble_mnss_data_t m_mnss_data = {
+														   .sn =0x00000001,           /**< serial number */
+															 .counter_value = 0,        /**< counter value */
+															 .period = 100,             /**< period value  */
+															};
+uint32_t local_mns_cnt = 0;
+uint32_t remote_mns_cnt = 0;
 
 static uint8_t m_adv_handle = BLE_GAP_ADV_SET_HANDLE_NOT_SET;                   /**< Advertising handle used to identify an advertising set. */
 static uint8_t m_enc_advdata[BLE_GAP_ADV_SET_DATA_SIZE_MAX];                    /**< Buffer for storing an encoded advertising set. */
@@ -278,7 +286,6 @@ static void nrf_qwr_error_handler(uint32_t nrf_error)
  */
 static void mnss_write_handler(uint16_t conn_handle, ble_mnss_t* p_mnss, ble_mnss_data_t * p_data)
 {
-		ble_gatts_value_t     gatt_value;
 		static ble_mnss_data_t data;
 		uint16_t len = sizeof(ble_mnss_data_t);
 	
@@ -287,11 +294,6 @@ static void mnss_write_handler(uint16_t conn_handle, ble_mnss_t* p_mnss, ble_mns
 		memcpy(&data, p_data, len);
 		NRF_LOG_INFO("data:");
 		NRF_LOG_INFO("SN:%X, CNT:%X, PERIOD:%X", data.sn, data.counter_value, data.period);
-	
-		gatt_value.len = len;
-		gatt_value.p_value = (uint8_t *)&data;
-		gatt_value.offset = 0;
-		sd_ble_gatts_value_set(conn_handle,p_mnss->data_read_handle.value_handle, &gatt_value);
 }
 
 
@@ -404,11 +406,11 @@ static void advertising_stop(void)
  */
 static void on_connected(const ble_gap_evt_t * const p_gap_evt)
 {
-    uint32_t    periph_link_cnt = ble_conn_state_peripheral_conn_count(); // Number of peripheral links.
+    m_periph_link_cnt = ble_conn_state_peripheral_conn_count(); // Number of peripheral links.
 
-		NRF_LOG_INFO("Connection with link 0x%x established. total:%d", p_gap_evt->conn_handle, periph_link_cnt);
+		NRF_LOG_INFO("Connection with link 0x%x established. total:%d", p_gap_evt->conn_handle, m_periph_link_cnt);
 	  
-    switch (periph_link_cnt)
+    switch (m_periph_link_cnt)
 		{
         case 1:
 						m_conn_handle[0] = p_gap_evt->conn_handle;
@@ -438,13 +440,14 @@ static void on_connected(const ble_gap_evt_t * const p_gap_evt)
  */
 static void on_disconnected(ble_gap_evt_t const * const p_gap_evt)
 {
-    uint32_t    periph_link_cnt = ble_conn_state_peripheral_conn_count(); // Number of peripheral links.
+    m_periph_link_cnt = ble_conn_state_peripheral_conn_count(); // Number of peripheral links.
 
-    NRF_LOG_INFO("Connection 0x%x has been disconnected. Reason: 0x%X",
+		NRF_LOG_INFO("Connection 0x%x has been disconnected. Reason: 0x%X, total:%d",
                  p_gap_evt->conn_handle,
-                 p_gap_evt->params.disconnected.reason);
+                 p_gap_evt->params.disconnected.reason,
+								 m_periph_link_cnt);
 
-    switch (periph_link_cnt)
+    switch (m_periph_link_cnt)
 		{
         case 0:
 						m_conn_handle[0] = BLE_CONN_HANDLE_INVALID;
@@ -667,14 +670,23 @@ static void idle_state_handle(void)
     }
 }
 
-uint32_t local_mns_cnt = 0;
-uint32_t remote_mns_cnt = 0;
+
 static void mns_timer_handler(void * p_context)
 {
+		ble_gatts_value_t     gatt_value;
+	  uint16_t index;
+	
 		local_mns_cnt++;
-	  if((local_mns_cnt % 100) == 0)
+	  m_mnss_data.counter_value = local_mns_cnt;
+	
+		gatt_value.len = sizeof(ble_mnss_data_t);
+		gatt_value.p_value = (uint8_t *)&m_mnss_data;
+		gatt_value.offset = 0;
+	  for(index=0;index<m_periph_link_cnt;index++)
 		{
-				NRF_LOG_INFO("local_msn_cnt = %d", local_mns_cnt);
+				sd_ble_gatts_value_set(m_conn_handle[index],
+															 m_mnss.data_read_handle.value_handle, 
+															 &gatt_value);
 		}
 }
 	
