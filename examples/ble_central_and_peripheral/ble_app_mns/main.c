@@ -109,10 +109,11 @@ APP_TIMER_DEF(m_mns_timer);
 #define MNS_TIMER_PERIOD      APP_TIMER_TICKS(20)       /*multi node synchronize */    
 
 
+#define MNSS_THRESHOLD   5
 static uint16_t m_conn_handle[NRF_SDH_BLE_PERIPHERAL_LINK_COUNT] = {0};         /**< Handle of the current connection. */
 static uint16_t m_periph_link_cnt = 0;
 static ble_mnss_data_t m_mnss_data = {
-														   .sn =0x00000001,           /**< serial number */
+														   .sn =0xFFFF0001,           /**< serial number */
 															 .counter_value = 0,        /**< counter value */
 															 .period = 100,             /**< period value  */
 															};
@@ -288,12 +289,29 @@ static void mnss_write_handler(uint16_t conn_handle, ble_mnss_t* p_mnss, ble_mns
 {
 		static ble_mnss_data_t data;
 		uint16_t len = sizeof(ble_mnss_data_t);
+		uint32_t cnt_error;
 	
 		NRF_LOG_INFO("mnss_write_handler");
 		NRF_LOG_INFO("mnss_write_handler: conn_handle = %x", conn_handle);
+	
 		memcpy(&data, p_data, len);
 		NRF_LOG_INFO("data:");
 		NRF_LOG_INFO("SN:%X, CNT:%X, PERIOD:%X", data.sn, data.counter_value, data.period);
+		if(data.sn < m_mnss_data.sn)
+		{
+				if(data.counter_value > m_mnss_data.counter_value)
+				{
+						cnt_error = data.counter_value - m_mnss_data.counter_value;
+				}
+				else
+				{
+						cnt_error = m_mnss_data.counter_value - data.counter_value;
+				}
+				if(cnt_error > MNSS_THRESHOLD)
+				{
+						local_mns_cnt = data.counter_value;
+				}
+		}
 }
 
 
