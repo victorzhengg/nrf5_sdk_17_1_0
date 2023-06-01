@@ -104,6 +104,11 @@ BLE_MNSS_DEF(m_mnss);                                                           
 NRF_BLE_GATT_DEF(m_gatt);                                                       /**< GATT module instance. */
 NRF_BLE_QWR_DEF(m_qwr);                                                         /**< Context for the Queued Write module.*/
 
+
+APP_TIMER_DEF(m_mns_timer);
+#define MNS_TIMER_PERIOD      APP_TIMER_TICKS(20)       /*multi node synchronize */    
+
+
 static uint16_t m_conn_handle[NRF_SDH_BLE_PERIPHERAL_LINK_COUNT] = {0};         /**< Handle of the current connection. */
 
 static uint8_t m_adv_handle = BLE_GAP_ADV_SET_HANDLE_NOT_SET;                   /**< Advertising handle used to identify an advertising set. */
@@ -662,7 +667,17 @@ static void idle_state_handle(void)
     }
 }
 
-
+uint32_t local_mns_cnt = 0;
+uint32_t remote_mns_cnt = 0;
+static void mns_timer_handler(void * p_context)
+{
+		local_mns_cnt++;
+	  if((local_mns_cnt % 100) == 0)
+		{
+				NRF_LOG_INFO("local_msn_cnt = %d", local_mns_cnt);
+		}
+}
+	
 /**@brief Function for application main entry.
  */
 int main(void)
@@ -671,7 +686,10 @@ int main(void)
     // Initialize.
     log_init();
     leds_init();
+	
     timers_init();
+		app_timer_create(&m_mns_timer, APP_TIMER_MODE_REPEATED, mns_timer_handler);
+		app_timer_start(m_mns_timer, MNS_TIMER_PERIOD, NULL);
 	
     buttons_init();
 		err_code = app_button_enable();
