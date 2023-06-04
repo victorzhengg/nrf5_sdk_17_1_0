@@ -68,7 +68,7 @@
 #include "nrf_ble_qwr.h"
 #include "nrf_pwr_mgmt.h"
 
-
+#include "mns_control.h"
 #include "ble_conn_state.h"
 
 #include "nrf_log.h"
@@ -132,7 +132,7 @@ APP_TIMER_DEF(m_led_delay_timer);
 
 static char const m_target_periph_name[] = "Nordic_MNS";     /**< Name of the device we try to connect to. This name is searched in the scan report data*/
 static uint16_t m_conn_handle[NRF_SDH_BLE_PERIPHERAL_LINK_COUNT] = {0};         /**< Handle of the current connection. */
-static uint16_t m_periph_link_cnt = 0;
+
 static ble_mnss_data_t m_mnss_data = {
 														   .sn =0xFFFF0001,           /**< serial number */
 															 .counter_value = 0,        /**< counter value */
@@ -141,7 +141,7 @@ static ble_mnss_data_t m_mnss_data = {
 uint32_t local_mns_cnt = 0;
 uint32_t remote_mns_cnt = 0;
 static uint8_t sync_enable_flag = 0;															
-															
+static mns_control_t 	m_mns_control;														
 															
 															
 
@@ -425,12 +425,30 @@ static void advertising_stop(void)
  *
  * @param[in] p_gap_evt GAP event received from the BLE stack.
  */
-static void on_connected(const ble_gap_evt_t * const p_gap_evt)
+static void peripheral_on_connected(const ble_gap_evt_t * const p_gap_evt)
 {
-    m_periph_link_cnt = ble_conn_state_peripheral_conn_count(); // Number of peripheral links.
+    uint32_t m_periph_link_cnt = 0;
+		mns_node_t node;
+		uint32_t error;
 
-		NRF_LOG_INFO("peripheral Connection with link 0x%x established. total:%d", p_gap_evt->conn_handle, m_periph_link_cnt);
+    m_periph_link_cnt = ble_conn_state_peripheral_conn_count(); // Number of peripheral links.
+	
+		NRF_LOG_INFO("role peripheral was connected. address:");
+		NRF_LOG_HEXDUMP_INFO(p_gap_evt->params.connected.peer_addr.addr, 6);	
+		NRF_LOG_INFO("connect handle = 0x%x. total connection = %d", p_gap_evt->conn_handle, m_periph_link_cnt);
 	  
+		memset(&node, 0, sizeof(mns_node_t));
+		node.conn_handle = p_gap_evt->conn_handle;
+	  memcpy(&(node.peer_addr), 
+	         &(p_gap_evt->params.connected.peer_addr), 
+	         sizeof(ble_gap_addr_t));
+	
+	  error = mns_control_add_node(&m_mns_control, &node);
+	  if(error != 0)
+		{
+				NRF_LOG_INFO("fail to add node to mns");
+		}
+	
     switch (m_periph_link_cnt)
 		{
         case 1:
@@ -457,8 +475,11 @@ static void on_connected(const ble_gap_evt_t * const p_gap_evt)
  *
  * @param[in] p_gap_evt GAP event received from the BLE stack.
  */
-static void on_disconnected(ble_gap_evt_t const * const p_gap_evt)
+static void peripheral_on_disconnected(ble_gap_evt_t const * const p_gap_evt)
 {
+		uint32_t m_periph_link_cnt = 0;
+		mns_node_t node;
+	
     m_periph_link_cnt = ble_conn_state_peripheral_conn_count(); // Number of peripheral links.
 
 		NRF_LOG_INFO("peripheral Connection 0x%x has been disconnected. Reason: 0x%X, total:%d",
@@ -466,6 +487,8 @@ static void on_disconnected(ble_gap_evt_t const * const p_gap_evt)
                  p_gap_evt->params.disconnected.reason,
 								 m_periph_link_cnt);
 
+		mns_control_delete_node(&m_mns_control, p_gap_evt->conn_handle);
+	
     switch (m_periph_link_cnt)
 		{
         case 0:
@@ -519,6 +542,7 @@ static void central_ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_contex
         {
 						NRF_LOG_INFO("central_ble_evt_handler: Connected. address:");
 						NRF_LOG_HEXDUMP_INFO(p_gap_evt->params.connected.peer_addr.addr, 6);
+						NRF_LOG_INFO("central_ble_evt_handler: Connected. handle:%d", p_gap_evt->conn_handle);
 					
             err_code = ble_mnss_c_handles_assign(&m_ble_mnss_c, p_gap_evt->conn_handle, NULL);
             APP_ERROR_CHECK(err_code);
@@ -526,6 +550,20 @@ static void central_ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_contex
             err_code = ble_db_discovery_start(&m_db_disc, p_gap_evt->conn_handle);
             APP_ERROR_CHECK(err_code);
 
+						mns_node_t node;
+	  
+						memset(&node, 0, sizeof(mns_node_t));
+						node.conn_handle = p_gap_evt->conn_handle;
+						memcpy(&(node.peer_addr), 
+									 &(p_gap_evt->params.connected.peer_addr), 
+									 sizeof(ble_gap_addr_t));
+	
+						err_code = mns_control_add_node(&m_mns_control, &node);
+						if(err_code != 0)
+						{
+								NRF_LOG_INFO("fail to add node to mns");
+						}
+						
             // Update LEDs status, and check if we should be looking for more
             // peripherals to connect to.
             bsp_board_led_on(GATT_CLIENT_LED);
@@ -536,7 +574,11 @@ static void central_ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_contex
         case BLE_GAP_EVT_DISCONNECTED:
         {
 						NRF_LOG_INFO("central_ble_evt_handler: Disconnected.");
+					
+						mns_control_delete_node(&m_mns_control, p_gap_evt->conn_handle);
+					
 						bsp_board_led_off(GATT_CLIENT_LED);
+					
             scan_start();
         } break;
 
@@ -599,12 +641,12 @@ static void peripheral_ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_con
     switch (p_ble_evt->header.evt_id)
     {
         case BLE_GAP_EVT_CONNECTED:
-            on_connected(&p_ble_evt->evt.gap_evt);
+            peripheral_on_connected(&p_ble_evt->evt.gap_evt);
 
             break;
 
         case BLE_GAP_EVT_DISCONNECTED:
-            on_disconnected(&p_ble_evt->evt.gap_evt);
+            peripheral_on_disconnected(&p_ble_evt->evt.gap_evt);
             break;
 
         case BLE_GAP_EVT_SEC_PARAMS_REQUEST:
@@ -823,18 +865,21 @@ static void mns_timer_handler(void * p_context)
 		
 	  m_mnss_data.counter_value = local_mns_cnt;
 	
-		gatt_value.len = sizeof(ble_mnss_data_t);
-		gatt_value.p_value = (uint8_t *)&m_mnss_data;
-		gatt_value.offset = 0;
-	  for(index=0;index<m_periph_link_cnt;index++)
-		{
-				sd_ble_gatts_value_set(m_conn_handle[index],
-															 m_mnss.data_read_handle.value_handle, 
-															 &gatt_value);
-		}
+
 		
 		if(sync_enable_flag == 1)
 		{
+/*
+				gatt_value.len = sizeof(ble_mnss_data_t);
+				gatt_value.p_value = (uint8_t *)&m_mnss_data;
+				gatt_value.offset = 0;
+				for(index=0;index<m_periph_link_cnt;index++)
+				{
+						sd_ble_gatts_value_set(m_conn_handle[index],
+																	 m_mnss.data_read_handle.value_handle, 
+																	 &gatt_value);
+				}
+*/
 		}
 }
 
@@ -1012,6 +1057,8 @@ int main(void)
 		APP_ERROR_CHECK(err_code);
 	
     power_management_init();
+	
+		mns_control_init(&m_mns_control);
 	
     ble_stack_init();
 		scan_init();

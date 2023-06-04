@@ -391,6 +391,11 @@
               <FileType>5</FileType>
               <FilePath>..\config\sdk_config.h</FilePath>
             </File>
+            <File>
+              <FileName>mns_control.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\mns_control.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -3660,6 +3665,11 @@
               <FileName>sdk_config.h</FileName>
               <FileType>5</FileType>
               <FilePath>..\config\sdk_config.h</FilePath>
+            </File>
+            <File>
+              <FileName>mns_control.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\mns_control.c</FilePath>
             </File>
           </Files>
         </Group>

@@ -38,9 +38,9 @@
  *
  */
 /**
- * @brief Blinky Sample Application main file.
+ * @brief multi node synchronize control
  *
- * This file contains the source code for a sample server application using the LED Button service.
+ * This module enables the application to synchromize the timer in each node
  */
 
 #include <stdint.h>
@@ -48,7 +48,119 @@
 #include "nordic_common.h"
 #include "nrf.h"
 #include "app_error.h"
+#include "mns_control.h"
 
+#define NRF_LOG_MODULE_NAME mns_control
+#include "nrf_log.h"
+NRF_LOG_MODULE_REGISTER();
+
+/**@brief Function for initialize the globle variables m_mns_control
+ *
+ * @param[in] 
+ */
+mns_node_t* mns_control_init(mns_control_t* p_mns_control)
+{
+		mns_node_t* p_node= NULL;
+		uint16_t index;
+	  
+		memset(p_mns_control, 0, sizeof(mns_control_t));
+	
+		for(index=0;index<MNS_MAX_NODE_NUM;index++)
+		{
+				p_mns_control->node[index].conn_handle = BLE_CONN_HANDLE_INVALID;
+		}
+		return 	p_node;	
+}
+
+/**@brief Function for find the node according the connect handle
+ *
+ * @param[in] 
+ */
+mns_node_t* mns_control_find_node(mns_control_t* p_mns, uint16_t conn_handle)
+{
+		mns_node_t* p_node= NULL;
+		uint16_t index;
+	  
+		for(index=0;index<MNS_MAX_NODE_NUM;index++)
+		{
+				if(p_mns->node[index].conn_handle == conn_handle)
+				{
+						p_node = &(p_mns->node[index]);
+				}
+		}
+		return 	p_node;	
+}
+
+/**@brief Function for find the node according the connect handle
+ *
+ * @param[in] 
+ */
+uint32_t mns_control_add_node(mns_control_t* p_mns, mns_node_t* p_node)
+{
+		uint16_t index;
+		uint32_t error = 1;
+	
+	  for(index=0;index<MNS_MAX_NODE_NUM;index++)
+		{
+				if(p_mns->node[index].conn_handle == BLE_CONN_HANDLE_INVALID)
+				{
+						memcpy(&(p_mns->node[index]), p_node, sizeof(mns_node_t));
+						error = 0;
+						NRF_LOG_INFO("mns_control_add_node:add handle %d to index %d",
+					               p_mns->node[index].conn_handle,
+					               index);
+						break;
+				}
+		}
+		
+		if(p_mns->total_connection < MNS_MAX_NODE_NUM)
+		{
+				p_mns->total_connection++;
+				NRF_LOG_INFO("mns_control_add_node:total_connection = %d", p_mns->total_connection);
+		}
+		
+		return error;
+}
+
+/**@brief Function for delete the node according the connect handle
+ *
+ * @param[in] 
+ */
+uint32_t mns_control_delete_node(mns_control_t* p_mns, uint16_t conn_handle)
+{
+		uint16_t index;
+		uint32_t error = 1;
+	
+	  for(index=0;index<MNS_MAX_NODE_NUM;index++)
+		{
+				if(p_mns->node[index].conn_handle == conn_handle)
+				{
+						memset(&(p_mns->node[index]), 0, sizeof(mns_node_t));
+						p_mns->node[index].conn_handle = BLE_CONN_HANDLE_INVALID;
+						error = 0;
+						NRF_LOG_INFO("mns_control_delete_node:delete handle %d from index %d",
+												 conn_handle,
+						             index);
+					  break;
+				}
+		}
+		
+		if(p_mns->total_connection > 0)
+		{
+				p_mns->total_connection--;
+				NRF_LOG_INFO("mns_control_delete_node:total_connection = %d", p_mns->total_connection);
+		}
+		
+		return error;		
+}
+
+/**@brief Function for synchronize the counter between each node
+ *
+ * @param[in] 
+ */
+uint32_t mns_control_syncrhonize_node(mns_control_t* p_mns, uint32_t local_cnt)
+{
+}
 
 
 /**
