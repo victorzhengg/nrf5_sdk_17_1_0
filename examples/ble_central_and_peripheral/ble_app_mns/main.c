@@ -112,7 +112,7 @@
 #define MNS_TIMER_PERIOD      APP_TIMER_TICKS(20)       /*multi node synchronize */
 #define MNSS_THRESHOLD   5
 #define LED_ON_DELAY     APP_TIMER_TICKS(100)           /*duty of led on */
-
+#define FICR_DEVICE_ADDR   ((uint32_t*)0x100000A4)
 
 BLE_MNSS_DEF(m_mnss);                                                             /**< LED Button Service instance. */
 BLE_MNSS_C_DEF(m_ble_mnss_c); 
@@ -1043,8 +1043,9 @@ int main(void)
     // Initialize.
     log_init();
     leds_init();
-	
-		NRF_LOG_INFO("Multi Node Synchronize example started. Node: %X", m_mnss_data.sn);
+	  
+		m_mnss_data.sn = *FICR_DEVICE_ADDR;
+		NRF_LOG_INFO("Multi Node Synchronize example started. SN: %X", m_mnss_data.sn);
 	
     timers_init();
 		app_timer_create(&m_mns_timer, APP_TIMER_MODE_REPEATED, mns_timer_handler);
