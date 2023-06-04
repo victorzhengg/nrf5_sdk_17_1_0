@@ -130,7 +130,6 @@ struct ble_mnss_s
     ble_gatts_char_handles_t    data_write_handle;  /**< Handles related to the write Characteristic. */
     ble_gatts_char_handles_t    data_read_handle;   /**< Handles related to the read Characteristic. */
     uint8_t                     uuid_type;           /**< UUID type for the Multi Node Synchronize Button Service. */
-		ble_mnss_data_t             data;
 	  ble_mnss_write_handler_t    data_write_handler;
 };
 

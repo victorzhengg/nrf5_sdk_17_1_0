@@ -122,6 +122,13 @@ uint32_t mns_control_syncrhonize_node(mns_control_t* p_mns, uint32_t local_cnt);
  */
 mns_node_t* mns_control_init(mns_control_t* p_mns_control);
 
+
+/**@brief Function for check if node have already connect
+ *
+ * @param[in] 
+ */
+bool mns_control_if_node_connected(mns_control_t* p_mns, const ble_gap_addr_t* p_addr);
+	
 #ifdef __cplusplus
 }
 #endif

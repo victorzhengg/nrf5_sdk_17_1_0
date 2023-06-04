@@ -883,6 +883,54 @@ static void mns_timer_handler(void * p_context)
 		}
 }
 
+/*
+static void nrf_ble_scan_connect_with_target(nrf_ble_scan_t           const * const p_scan_ctx,
+                                             ble_gap_evt_adv_report_t const * const p_adv_report)
+{
+    ret_code_t err_code;
+    scan_evt_t scan_evt;
+
+    // For readability.
+    ble_gap_addr_t const        * p_addr        = &p_adv_report->peer_addr;
+    ble_gap_scan_params_t const * p_scan_params = &p_scan_ctx->scan_params;
+    ble_gap_conn_params_t const * p_conn_params = &p_scan_ctx->conn_params;
+    uint8_t                       con_cfg_tag   = p_scan_ctx->conn_cfg_tag;
+
+    // Return if the automatic connection is disabled.
+    if (!p_scan_ctx->connect_if_match)
+    {
+        return;
+    }
+
+    // Stop scanning.
+    nrf_ble_scan_stop();
+
+    memset(&scan_evt, 0, sizeof(scan_evt));
+
+    // Establish connection.
+    err_code = sd_ble_gap_connect(p_addr,
+                                  p_scan_params,
+                                  p_conn_params,
+                                  con_cfg_tag);
+
+    NRF_LOG_DEBUG("Connecting");
+
+    scan_evt.scan_evt_id                    = NRF_BLE_SCAN_EVT_CONNECTING_ERROR;
+    scan_evt.params.connecting_err.err_code = err_code;
+
+    NRF_LOG_DEBUG("Connection status: %d", err_code);
+
+    // If an error occurred, send an event to the event handler.
+    if ((err_code != NRF_SUCCESS) && (p_scan_ctx->evt_handler != NULL))
+    {
+        p_scan_ctx->evt_handler(&scan_evt);
+    }
+
+}
+*/
+
+
+
 /**@brief Function for handling Scaning events.
  *
  * @param[in]   p_scan_evt   Scanning event.
@@ -890,10 +938,23 @@ static void mns_timer_handler(void * p_context)
 static void scan_evt_handler(scan_evt_t const * p_scan_evt)
 {
     ret_code_t err_code;
+		const ble_gap_evt_adv_report_t *p_adv_report;
 
     switch(p_scan_evt->scan_evt_id)
     {
-        case NRF_BLE_SCAN_EVT_CONNECTING_ERROR:
+			case NRF_BLE_SCAN_EVT_FILTER_MATCH:
+						p_adv_report = p_scan_evt->params.filter_match.p_adv_report;
+			      
+			      NRF_LOG_INFO("scan_evt_handler: NRF_BLE_SCAN_EVT_FILTER_MATCH addr:");
+						NRF_LOG_HEXDUMP_INFO(p_adv_report->peer_addr.addr, 6);
+						if(mns_control_if_node_connected(&m_mns_control, &(p_adv_report->peer_addr)))
+						{
+								NRF_LOG_INFO("node have laready connected");
+						}
+			
+					break;
+			
+			case NRF_BLE_SCAN_EVT_CONNECTING_ERROR:
             err_code = p_scan_evt->params.connecting_err.err_code;
             APP_ERROR_CHECK(err_code);
             break;
@@ -909,7 +970,7 @@ static void scan_init(void)
 
     memset(&init_scan, 0, sizeof(init_scan));
 
-    init_scan.connect_if_match = true;
+    init_scan.connect_if_match = false;
     init_scan.conn_cfg_tag     = APP_BLE_CONN_CFG_TAG;
 
     err_code = nrf_ble_scan_init(&m_scan, &init_scan, scan_evt_handler);

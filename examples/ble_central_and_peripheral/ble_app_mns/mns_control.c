@@ -163,6 +163,30 @@ uint32_t mns_control_syncrhonize_node(mns_control_t* p_mns, uint32_t local_cnt)
 }
 
 
+/**@brief Function for check if node have already connect
+ *
+ * @param[in] 
+ */
+bool mns_control_if_node_connected(mns_control_t* p_mns, const ble_gap_addr_t* p_addr)
+{
+		uint16_t index;
+		int result;
+		bool ret = false;
+	
+	  for(index=0;index<MNS_MAX_NODE_NUM;index++)
+		{
+			  result = memcmp(&(p_mns->node[index].peer_addr), p_addr, sizeof(ble_gap_addr_t));
+				if(result == 0)
+				{
+						ret = true;
+						NRF_LOG_INFO("node %d already connected", index);
+					  break;
+				}
+		}
+		
+		return ret;
+}
+
 /**
  * @}
  */
