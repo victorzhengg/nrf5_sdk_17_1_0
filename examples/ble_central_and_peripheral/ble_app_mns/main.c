@@ -109,7 +109,8 @@
 
 
 #define NRF_BLE_GQ_QUEUE_SIZE 4
-#define MNS_TIMER_PERIOD      APP_TIMER_TICKS(20)       /*multi node synchronize */
+#define MNS_TIMER_PERIOD                    APP_TIMER_TICKS(20)       /*multi node synchronize */
+#define MNS_CONNECT_CHECK_TIMER_PERIOD      APP_TIMER_TICKS(1000)       /*multi node synchronize */
 #define MNSS_THRESHOLD   5
 #define LED_ON_DELAY     APP_TIMER_TICKS(100)           /*duty of led on */
 #define FICR_DEVICE_ADDR   ((uint32_t*)0x100000A4)
@@ -127,6 +128,7 @@ NRF_BLE_SCAN_DEF(m_scan);
 
 APP_TIMER_DEF(m_mns_timer);
 APP_TIMER_DEF(m_led_delay_timer);
+APP_TIMER_DEF(m_connect_check_timer);
 
 
 
@@ -141,9 +143,7 @@ static ble_mnss_data_t m_mnss_data = {
 uint32_t local_mns_cnt = 0;
 uint32_t remote_mns_cnt = 0;
 static uint8_t sync_enable_flag = 0;															
-static mns_control_t 	m_mns_control;														
-															
-															
+static mns_control_t 	m_mns_control;
 
 static uint8_t m_adv_handle = BLE_GAP_ADV_SET_HANDLE_NOT_SET;                   /**< Advertising handle used to identify an advertising set. */
 static uint8_t m_enc_advdata[BLE_GAP_ADV_SET_DATA_SIZE_MAX];                    /**< Buffer for storing an encoded advertising set. */
@@ -314,7 +314,6 @@ static void mnss_write_handler(uint16_t conn_handle, ble_mnss_t* p_mnss, ble_mns
 {
 		static ble_mnss_data_t data;
 		uint16_t len = sizeof(ble_mnss_data_t);
-		uint32_t cnt_error;
 	
 		NRF_LOG_INFO("mnss_write_handler");
 		NRF_LOG_INFO("mnss_write_handler: conn_handle = %x", conn_handle);
@@ -322,21 +321,9 @@ static void mnss_write_handler(uint16_t conn_handle, ble_mnss_t* p_mnss, ble_mns
 		memcpy(&data, p_data, len);
 		NRF_LOG_INFO("data:");
 		NRF_LOG_INFO("SN:%X, CNT:%X, PERIOD:%X", data.sn, data.counter_value, data.period);
-		if(data.sn < m_mnss_data.sn)
-		{
-				if(data.counter_value > m_mnss_data.counter_value)
-				{
-						cnt_error = data.counter_value - m_mnss_data.counter_value;
-				}
-				else
-				{
-						cnt_error = m_mnss_data.counter_value - data.counter_value;
-				}
-				if(cnt_error > MNSS_THRESHOLD)
-				{
-						local_mns_cnt = data.counter_value;
-				}
-		}
+	
+		mns_control_udpate_node(&m_mns_control, conn_handle, &data);
+	
 }
 
 
@@ -436,7 +423,7 @@ static void peripheral_on_connected(const ble_gap_evt_t * const p_gap_evt)
 		NRF_LOG_INFO("role peripheral was connected. address:");
 		NRF_LOG_HEXDUMP_INFO(p_gap_evt->params.connected.peer_addr.addr, 6);	
 		NRF_LOG_INFO("connect handle = 0x%x. total connection = %d", p_gap_evt->conn_handle, m_periph_link_cnt);
-	  
+						
 		memset(&node, 0, sizeof(mns_node_t));
 		node.conn_handle = p_gap_evt->conn_handle;
 	  memcpy(&(node.peer_addr), 
@@ -478,7 +465,6 @@ static void peripheral_on_connected(const ble_gap_evt_t * const p_gap_evt)
 static void peripheral_on_disconnected(ble_gap_evt_t const * const p_gap_evt)
 {
 		uint32_t m_periph_link_cnt = 0;
-		mns_node_t node;
 	
     m_periph_link_cnt = ble_conn_state_peripheral_conn_count(); // Number of peripheral links.
 
@@ -557,7 +543,7 @@ static void central_ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_contex
 						memcpy(&(node.peer_addr), 
 									 &(p_gap_evt->params.connected.peer_addr), 
 									 sizeof(ble_gap_addr_t));
-	
+						node.central_flag = 1;
 						err_code = mns_control_add_node(&m_mns_control, &node);
 						if(err_code != 0)
 						{
@@ -849,12 +835,13 @@ static void led_delay_timer_handler(void * p_context)
 		bsp_board_led_off(MNSS_LED);
 }
 
+static void connect_check_timer_handler(void * p_context)
+{
+		//NRF_LOG_INFO("connect_check_timer_handler");
+}
 
 static void mns_timer_handler(void * p_context)
 {
-		ble_gatts_value_t     gatt_value;
-	  uint16_t index;
-	
 		local_mns_cnt++;
 		
 		if((local_mns_cnt % m_mnss_data.period) == 0)
@@ -869,17 +856,8 @@ static void mns_timer_handler(void * p_context)
 		
 		if(sync_enable_flag == 1)
 		{
-/*
-				gatt_value.len = sizeof(ble_mnss_data_t);
-				gatt_value.p_value = (uint8_t *)&m_mnss_data;
-				gatt_value.offset = 0;
-				for(index=0;index<m_periph_link_cnt;index++)
-				{
-						sd_ble_gatts_value_set(m_conn_handle[index],
-																	 m_mnss.data_read_handle.value_handle, 
-																	 &gatt_value);
-				}
-*/
+				sync_enable_flag = 0;
+				mns_control_syncrhonize_node(&m_mns_control, &m_mnss_data);
 		}
 }
 
@@ -945,11 +923,15 @@ static void scan_evt_handler(scan_evt_t const * p_scan_evt)
 			case NRF_BLE_SCAN_EVT_FILTER_MATCH:
 						p_adv_report = p_scan_evt->params.filter_match.p_adv_report;
 			      
-			      NRF_LOG_INFO("scan_evt_handler: NRF_BLE_SCAN_EVT_FILTER_MATCH addr:");
-						NRF_LOG_HEXDUMP_INFO(p_adv_report->peer_addr.addr, 6);
-						if(mns_control_if_node_connected(&m_mns_control, &(p_adv_report->peer_addr)))
+						if(mns_control_if_node_connected(&m_mns_control, &(p_adv_report->peer_addr)) == MNS_INVALID_INDEX)
 						{
-								NRF_LOG_INFO("node have laready connected");
+								NRF_LOG_INFO("add new node:");
+								NRF_LOG_HEXDUMP_INFO(p_adv_report->peer_addr.addr, 6);
+								nrf_ble_scan_stop();
+								err_code = sd_ble_gap_connect((ble_gap_addr_t const *)&(p_adv_report->peer_addr),
+																							&m_scan.scan_params,
+																							&m_scan.conn_params,
+																							m_scan.conn_cfg_tag);							
 						}
 			
 					break;
@@ -1111,8 +1093,11 @@ int main(void)
     timers_init();
 		app_timer_create(&m_mns_timer, APP_TIMER_MODE_REPEATED, mns_timer_handler);
 	  app_timer_create(&m_led_delay_timer, APP_TIMER_MODE_SINGLE_SHOT, led_delay_timer_handler);
+		app_timer_create(&m_connect_check_timer, APP_TIMER_MODE_REPEATED, connect_check_timer_handler);
+	
 	
 		app_timer_start(m_mns_timer, MNS_TIMER_PERIOD, NULL);
+		app_timer_start(m_connect_check_timer, MNS_CONNECT_CHECK_TIMER_PERIOD, NULL);	
 	
     buttons_init();
 		err_code = app_button_enable();
@@ -1120,8 +1105,8 @@ int main(void)
 	
     power_management_init();
 	
-		mns_control_init(&m_mns_control);
-	
+		mns_control_init(&m_mns_control, &m_mnss, &m_ble_mnss_c);												
+															
     ble_stack_init();
 		scan_init();
     gap_params_init();

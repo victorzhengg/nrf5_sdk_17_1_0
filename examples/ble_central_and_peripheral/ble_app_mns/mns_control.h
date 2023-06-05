@@ -64,7 +64,7 @@
 #include "ble_gap.h"
 
 #include "ble_mnss.h"
-
+#include "ble_mnss_c.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -72,6 +72,7 @@ extern "C" {
 
 
 #define MNS_MAX_NODE_NUM         3
+#define MNS_INVALID_INDEX        0xFFFF
 /**@brief LED Button Client initialization structure. */
 typedef struct
 {
@@ -85,6 +86,8 @@ typedef struct
 typedef struct
 {
     uint16_t          total_connection;
+		ble_mnss_t*       p_peripheral_service;
+		ble_mnss_c_t*     p_central_service;
 		mns_node_t        node[MNS_MAX_NODE_NUM];
 } mns_control_t;
 
@@ -109,26 +112,37 @@ uint32_t mns_control_add_node(mns_control_t* p_mns, mns_node_t* p_node);
  */
 uint32_t mns_control_delete_node(mns_control_t* p_mns, uint16_t conn_handle);
 
+
 /**@brief Function for synchronize the counter between each node
  *
  * @param[in] 
  */
-uint32_t mns_control_syncrhonize_node(mns_control_t* p_mns, uint32_t local_cnt);
+uint32_t mns_control_syncrhonize_node(mns_control_t* p_mns_control, ble_mnss_data_t* p_data);
 
 
 /**@brief Function for initialize the globle variables m_mns_control
  *
  * @param[in] 
  */
-mns_node_t* mns_control_init(mns_control_t* p_mns_control);
+mns_node_t* mns_control_init(mns_control_t* p_mns_control,		
+                             ble_mnss_t*    p_peripheral_service,
+		                         ble_mnss_c_t*  p_central_service);
 
 
 /**@brief Function for check if node have already connect
  *
  * @param[in] 
+ * @retval index              If find return the index of node. Otherwise return the 
  */
-bool mns_control_if_node_connected(mns_control_t* p_mns, const ble_gap_addr_t* p_addr);
-	
+uint16_t mns_control_if_node_connected(mns_control_t* p_mns, const ble_gap_addr_t* p_addr);
+
+
+/**@brief Function for update the data of each node
+ *
+ * @param[in] 
+ */
+uint32_t mns_control_udpate_node(mns_control_t* p_mns, uint16_t conn_handle, ble_mnss_data_t* data);
+
 #ifdef __cplusplus
 }
 #endif

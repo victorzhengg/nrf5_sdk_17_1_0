@@ -49,6 +49,8 @@
 #include "nrf.h"
 #include "app_error.h"
 #include "mns_control.h"
+#include "ble_mnss_c.h"
+
 
 #define NRF_LOG_MODULE_NAME mns_control
 #include "nrf_log.h"
@@ -58,12 +60,16 @@ NRF_LOG_MODULE_REGISTER();
  *
  * @param[in] 
  */
-mns_node_t* mns_control_init(mns_control_t* p_mns_control)
+mns_node_t* mns_control_init(mns_control_t* p_mns_control,		
+                             ble_mnss_t*    p_peripheral_service,
+		                         ble_mnss_c_t*  p_central_service)
 {
 		mns_node_t* p_node= NULL;
 		uint16_t index;
 	  
 		memset(p_mns_control, 0, sizeof(mns_control_t));
+	  p_mns_control->p_peripheral_service = p_peripheral_service;
+	  p_mns_control->p_central_service = p_central_service;
 	
 		for(index=0;index<MNS_MAX_NODE_NUM;index++)
 		{
@@ -154,32 +160,71 @@ uint32_t mns_control_delete_node(mns_control_t* p_mns, uint16_t conn_handle)
 		return error;		
 }
 
+
 /**@brief Function for synchronize the counter between each node
  *
  * @param[in] 
  */
-uint32_t mns_control_syncrhonize_node(mns_control_t* p_mns, uint32_t local_cnt)
+uint32_t mns_control_syncrhonize_node(mns_control_t* p_mns_control, ble_mnss_data_t* p_data)
 {
+		uint16_t index;
+		ble_gatts_value_t gatt_value;
+		NRF_LOG_INFO("mns_control_syncrhonize_node cnt=%X", p_data->counter_value);
+	  for(index=0;index<MNS_MAX_NODE_NUM;index++)
+		{
+				if(p_mns_control->node[index].conn_handle != BLE_CONN_HANDLE_INVALID)
+				{
+						NRF_LOG_INFO("send data to node:conn_handle = %d, central_flag = %d", 
+					                p_mns_control->node[index].conn_handle,
+													p_mns_control->node[index].central_flag);
+						if(p_mns_control->node[index].central_flag == 1)   
+						{
+								ble_mnss_write_data(p_mns_control->p_central_service, p_data);
+						}
+						else
+						{
+
+								gatt_value.len = sizeof(ble_mnss_data_t);
+								gatt_value.p_value = (uint8_t*)p_data;
+								gatt_value.offset = 0;
+
+								sd_ble_gatts_value_set(p_mns_control->node[index].conn_handle,
+																			 p_mns_control->p_peripheral_service->data_read_handle.value_handle, 
+																			 &gatt_value);							
+						}
+				}
+		}
+		return 0;
 }
+
+
+/**@brief Function for update the data of each node
+ *
+ * @param[in] 
+ */
+uint32_t mns_control_udpate_node(mns_control_t* p_mns, uint16_t conn_handle, ble_mnss_data_t* data)
+{
+		return 0;
+}
+
 
 
 /**@brief Function for check if node have already connect
  *
  * @param[in] 
  */
-bool mns_control_if_node_connected(mns_control_t* p_mns, const ble_gap_addr_t* p_addr)
+uint16_t mns_control_if_node_connected(mns_control_t* p_mns, const ble_gap_addr_t* p_addr)
 {
 		uint16_t index;
 		int result;
-		bool ret = false;
+		uint16_t ret = MNS_INVALID_INDEX;
 	
 	  for(index=0;index<MNS_MAX_NODE_NUM;index++)
 		{
 			  result = memcmp(&(p_mns->node[index].peer_addr), p_addr, sizeof(ble_gap_addr_t));
 				if(result == 0)
 				{
-						ret = true;
-						NRF_LOG_INFO("node %d already connected", index);
+						ret = index;
 					  break;
 				}
 		}
