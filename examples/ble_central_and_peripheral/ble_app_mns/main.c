@@ -1023,7 +1023,9 @@ static void mnss_c_evt_handler(ble_mnss_c_t * p_mnss_c, ble_mnss_c_evt_t * p_mns
 
 				case BLE_MNSS_C_EVT_READ:
         {
-            NRF_LOG_INFO("BLE_MNSS_C_EVT_READ");
+						mns_control_udpate_node(&m_mns_control, 
+																		p_mnss_c_evt->conn_handle, 
+																		&(p_mnss_c_evt->params.data));
  
         } break; // BLE_LBS_C_EVT_BUTTON_NOTIFICATION
 				

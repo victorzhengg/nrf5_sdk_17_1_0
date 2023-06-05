@@ -43,6 +43,9 @@
 #include "ble_db_discovery.h"
 #include "ble_types.h"
 #include "ble_gattc.h"
+
+#include "../../../mns_control.h"
+
 #define NRF_LOG_MODULE_NAME ble_mnss_c
 #include "nrf_log.h"
 NRF_LOG_MODULE_REGISTER();
@@ -108,7 +111,10 @@ void ble_mnss_on_db_disc_evt(ble_mnss_c_t * p_ble_mnss_c, ble_db_discovery_evt_t
             }
         }
 
-        p_ble_mnss_c->evt_handler(p_ble_mnss_c, &evt);
+        if(p_ble_mnss_c->evt_handler != NULL)
+				{
+						p_ble_mnss_c->evt_handler(p_ble_mnss_c, &evt);
+				}
 
     }
 }
@@ -152,6 +158,7 @@ void ble_mnss_c_on_ble_evt(ble_evt_t const * p_ble_evt, void * p_context)
 		const ble_gattc_evt_read_rsp_t * p_val;
 		ble_mnss_c_t * p_ble_mnss_c;
 		uint16_t len;
+		ble_mnss_c_evt_t evt;
 			
     if ((p_context == NULL) || (p_ble_evt == NULL))
     {
@@ -166,13 +173,19 @@ void ble_mnss_c_on_ble_evt(ble_evt_t const * p_ble_evt, void * p_context)
 						NRF_LOG_INFO("ble_mnss_c_on_ble_evt: BLE_GATTC_EVT_WRITE_CMD_TX_COMPLETE");
             break;
 				
-				case BLE_GATTC_EVT_READ_RSP:
+				case BLE_GATTC_EVT_READ_RSP:				
 						NRF_LOG_INFO("ble_mnss_c_on_ble_evt: BLE_GATTC_EVT_READ_RSP");
 						p_val = &p_ble_evt->evt.gattc_evt.params.read_rsp;
 						len = p_val->len;
-						NRF_LOG_INFO("received %d data:", len);
-						memcpy(rx_buf, p_val->data, len);
-						NRF_LOG_HEXDUMP_INFO(rx_buf, len);
+				
+						evt.evt_type    = BLE_MNSS_C_EVT_READ;
+						evt.conn_handle = p_ble_evt->evt.gap_evt.conn_handle;
+						memcpy(&evt.params.data, p_val->data, len);
+
+						if(p_ble_mnss_c->evt_handler != NULL)
+						{
+								p_ble_mnss_c->evt_handler(p_ble_mnss_c, &evt);
+						}
 				
 						break;
 

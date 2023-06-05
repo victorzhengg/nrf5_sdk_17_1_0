@@ -180,6 +180,7 @@ uint32_t mns_control_syncrhonize_node(mns_control_t* p_mns_control, ble_mnss_dat
 						if(p_mns_control->node[index].central_flag == 1)   
 						{
 								ble_mnss_write_data(p_mns_control->p_central_service, p_data);
+								ble_mnss_read_data(p_mns_control->p_central_service);
 						}
 						else
 						{
@@ -202,8 +203,12 @@ uint32_t mns_control_syncrhonize_node(mns_control_t* p_mns_control, ble_mnss_dat
  *
  * @param[in] 
  */
-uint32_t mns_control_udpate_node(mns_control_t* p_mns, uint16_t conn_handle, ble_mnss_data_t* data)
+uint32_t mns_control_udpate_node(mns_control_t* p_mns_control, uint16_t conn_handle, ble_mnss_data_t* data)
 {
+		NRF_LOG_INFO("mns_control_udpate_node:");
+	  NRF_LOG_INFO("SN = %X", data->sn);
+		NRF_LOG_INFO("CNT = %d", data->counter_value);
+		NRF_LOG_INFO("PERIOD = %d", data->period);
 		return 0;
 }
 

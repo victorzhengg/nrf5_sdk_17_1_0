@@ -133,7 +133,7 @@ typedef struct
     uint16_t             conn_handle; /**< Connection handle on which the event occured.*/
     union
     {
-        ble_button_t button;          /**< Button value received. This is filled if the evt_type is @ref BLE_LBS_C_EVT_BUTTON_NOTIFICATION. */
+        ble_mnss_data_t data;          /**< Button value received. This is filled if the evt_type is @ref BLE_LBS_C_EVT_BUTTON_NOTIFICATION. */
         mnss_db_t    peer_db;         /**< Handles related to the LED Button Service found on the peer device. This is filled if the evt_type is @ref BLE_LBS_C_EVT_DISCOVERY_COMPLETE.*/
     } params;
 } ble_mnss_c_evt_t;

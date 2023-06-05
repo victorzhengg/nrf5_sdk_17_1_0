@@ -141,7 +141,7 @@ uint16_t mns_control_if_node_connected(mns_control_t* p_mns, const ble_gap_addr_
  *
  * @param[in] 
  */
-uint32_t mns_control_udpate_node(mns_control_t* p_mns, uint16_t conn_handle, ble_mnss_data_t* data);
+uint32_t mns_control_udpate_node(mns_control_t* p_mns_control, uint16_t conn_handle, ble_mnss_data_t* data);
 
 #ifdef __cplusplus
 }
