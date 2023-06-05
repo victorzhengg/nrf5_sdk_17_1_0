@@ -71,8 +71,12 @@ extern "C" {
 #endif
 
 
-#define MNS_MAX_NODE_NUM         3
-#define MNS_INVALID_INDEX        0xFFFF
+#define MNS_MAX_NODE_NUM                  3
+#define MNS_INVALID_INDEX                 0xFFFF
+#define MNS_CONTROL_ERROR_THRESHOLD       5
+#define FICR_DEVICE_ADDR                  ((uint32_t*)0x100000A4)
+#define MNS_CONTROL_LED_PERIOD            100
+
 /**@brief LED Button Client initialization structure. */
 typedef struct
 {
@@ -88,7 +92,8 @@ typedef struct
     uint16_t          total_connection;
 		ble_mnss_t*       p_peripheral_service;
 		ble_mnss_c_t*     p_central_service;
-		mns_node_t        node[MNS_MAX_NODE_NUM];
+	  ble_mnss_data_t   local_data;
+		mns_node_t        remote_node[MNS_MAX_NODE_NUM];
 } mns_control_t;
 
 
@@ -96,28 +101,37 @@ typedef struct
  *
  * @param[in] 
  */
-mns_node_t* mns_control_find_node(mns_control_t* p_mns, uint16_t conn_handle);
+mns_node_t* mns_control_find_node(mns_control_t* p_mns_control, uint16_t conn_handle);
 
 
 /**@brief Function to add a node to structure mns_control
  *
  * @param[in] 
  */
-uint32_t mns_control_add_node(mns_control_t* p_mns, mns_node_t* p_node);
+uint32_t mns_control_add_node(mns_control_t* p_mns_control, mns_node_t* p_node);
 
 
 /**@brief Function for delete the node according the connect handle
  *
  * @param[in] 
  */
-uint32_t mns_control_delete_node(mns_control_t* p_mns, uint16_t conn_handle);
+uint32_t mns_control_delete_node(mns_control_t* p_mns_control, uint16_t conn_handle);
 
 
 /**@brief Function for synchronize the counter between each node
  *
  * @param[in] 
  */
-uint32_t mns_control_syncrhonize_node(mns_control_t* p_mns_control, ble_mnss_data_t* p_data);
+uint32_t mns_control_synchronize_with_node(mns_control_t* p_mns_control);
+
+
+
+/**@brief Function for exchange the data between each node
+ *
+ * @param[in] 
+ */
+uint32_t mns_control_communicate_with_node(mns_control_t* p_mns_control);
+
 
 
 /**@brief Function for initialize the globle variables m_mns_control
@@ -134,7 +148,7 @@ mns_node_t* mns_control_init(mns_control_t* p_mns_control,
  * @param[in] 
  * @retval index              If find return the index of node. Otherwise return the 
  */
-uint16_t mns_control_if_node_connected(mns_control_t* p_mns, const ble_gap_addr_t* p_addr);
+uint16_t mns_control_if_node_connected(mns_control_t* p_mns_control, const ble_gap_addr_t* p_addr);
 
 
 /**@brief Function for update the data of each node

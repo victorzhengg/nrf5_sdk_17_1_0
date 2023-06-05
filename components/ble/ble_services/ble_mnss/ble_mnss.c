@@ -69,7 +69,6 @@ void ble_mnss_on_ble_evt(ble_evt_t const * p_ble_evt, void * p_context)
     switch (p_ble_evt->header.evt_id)
     {
         case BLE_GATTS_EVT_WRITE:
-						NRF_LOG_INFO("BLE_GATTS_EVT_WRITE");
 						p_evt_write = &p_ble_evt->evt.gatts_evt.params.write;
 
 						if (   (p_evt_write->handle == p_mnss->data_write_handle.value_handle)

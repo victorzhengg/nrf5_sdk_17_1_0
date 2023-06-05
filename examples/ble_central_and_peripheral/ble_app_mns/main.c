@@ -113,7 +113,7 @@
 #define MNS_CONNECT_CHECK_TIMER_PERIOD      APP_TIMER_TICKS(1000)       /*multi node synchronize */
 #define MNSS_THRESHOLD   5
 #define LED_ON_DELAY     APP_TIMER_TICKS(100)           /*duty of led on */
-#define FICR_DEVICE_ADDR   ((uint32_t*)0x100000A4)
+
 
 BLE_MNSS_DEF(m_mnss);                                                             /**< LED Button Service instance. */
 BLE_MNSS_C_DEF(m_ble_mnss_c); 
@@ -135,13 +135,6 @@ APP_TIMER_DEF(m_connect_check_timer);
 static char const m_target_periph_name[] = "Nordic_MNS";     /**< Name of the device we try to connect to. This name is searched in the scan report data*/
 static uint16_t m_conn_handle[NRF_SDH_BLE_PERIPHERAL_LINK_COUNT] = {0};         /**< Handle of the current connection. */
 
-static ble_mnss_data_t m_mnss_data = {
-														   .sn =0xFFFF0001,           /**< serial number */
-															 .counter_value = 0,        /**< counter value */
-															 .period = 100,             /**< period value  */
-															};
-uint32_t local_mns_cnt = 0;
-uint32_t remote_mns_cnt = 0;
 static uint8_t sync_enable_flag = 0;															
 static mns_control_t 	m_mns_control;
 
@@ -315,13 +308,7 @@ static void mnss_write_handler(uint16_t conn_handle, ble_mnss_t* p_mnss, ble_mns
 		static ble_mnss_data_t data;
 		uint16_t len = sizeof(ble_mnss_data_t);
 	
-		NRF_LOG_INFO("mnss_write_handler");
-		NRF_LOG_INFO("mnss_write_handler: conn_handle = %x", conn_handle);
-	
-		memcpy(&data, p_data, len);
-		NRF_LOG_INFO("data:");
-		NRF_LOG_INFO("SN:%X, CNT:%X, PERIOD:%X", data.sn, data.counter_value, data.period);
-	
+		memcpy(&data, p_data, len);	
 		mns_control_udpate_node(&m_mns_control, conn_handle, &data);
 	
 }
@@ -841,24 +828,21 @@ static void connect_check_timer_handler(void * p_context)
 }
 
 static void mns_timer_handler(void * p_context)
-{
-		local_mns_cnt++;
+{	
+		if(sync_enable_flag == 1)
+		{
+				mns_control_synchronize_with_node(&m_mns_control);
+		}
 		
-		if((local_mns_cnt % m_mnss_data.period) == 0)
+		m_mns_control.local_data.cnt++;
+		
+		if((m_mns_control.local_data.cnt % m_mns_control.local_data.period) == 0)
 		{
 				bsp_board_led_on(MNSS_LED);
 				app_timer_start(m_led_delay_timer, LED_ON_DELAY, NULL);
 		}
-		
-	  m_mnss_data.counter_value = local_mns_cnt;
-	
 
-		
-		if(sync_enable_flag == 1)
-		{
-				sync_enable_flag = 0;
-				mns_control_syncrhonize_node(&m_mns_control, &m_mnss_data);
-		}
+		mns_control_communicate_with_node(&m_mns_control);
 }
 
 /*
@@ -1089,8 +1073,8 @@ int main(void)
     log_init();
     leds_init();
 	  
-		m_mnss_data.sn = *FICR_DEVICE_ADDR;
-		NRF_LOG_INFO("Multi Node Synchronize example started. SN: %X", m_mnss_data.sn);
+		
+		NRF_LOG_INFO("Multi Node Synchronize example started. SN: %X", m_mns_control.local_data.sn);
 	
     timers_init();
 		app_timer_create(&m_mns_timer, APP_TIMER_MODE_REPEATED, mns_timer_handler);
