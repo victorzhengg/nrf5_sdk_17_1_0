@@ -213,6 +213,73 @@ uint32_t mns_control_synchronize_with_node(mns_control_t* p_mns_control)
 		return 0;
 }
 
+
+
+static uint16_t choose_one_node_to_disconnect(mns_control_t* p_mns_control, mns_node_t* p_node_x, mns_node_t* p_node_y)
+{
+		uint16_t conn_handle = BLE_CONN_HANDLE_INVALID;
+	
+	  if((p_node_x->ready_flag == 0) || (p_node_y->ready_flag == 0))
+		{
+				return conn_handle;
+		}
+	
+		if(p_mns_control->local_data.sn > p_node_x->data.sn)
+		{
+				if(p_node_x->central_flag == 0)
+				{
+						if(p_node_x->conn_handle != BLE_CONN_HANDLE_INVALID)
+						{
+								conn_handle = p_node_x->conn_handle;
+						}
+				}
+				else if(p_node_y->central_flag == 0)
+				{
+						if(p_node_y->conn_handle != BLE_CONN_HANDLE_INVALID)
+						{
+								conn_handle = p_node_y->conn_handle;
+						}
+				}
+		}
+		return conn_handle;
+}
+
+/**@brief Function for exchange the data between each node
+ *
+ * @param[in] 
+ */
+uint32_t mns_control_redundant_connection_handle(mns_control_t* p_mns_control)
+{
+		uint16_t index;
+	  uint16_t conn_handle = BLE_CONN_HANDLE_INVALID;
+		mns_node_t* p_node_0 = &p_mns_control->remote_node[0];
+		mns_node_t* p_node_1 = &p_mns_control->remote_node[1];
+	  mns_node_t* p_node_2 = &p_mns_control->remote_node[2];
+
+		/*compare the sn of each node and low priority node act the gatt client role */		
+	  if(p_node_0->data.sn == p_node_1->data.sn)
+		{
+				conn_handle = choose_one_node_to_disconnect(p_mns_control, p_node_0, p_node_1);
+		}
+		else if(p_node_0->data.sn == p_node_2->data.sn)
+		{
+				conn_handle = choose_one_node_to_disconnect(p_mns_control, p_node_0, p_node_2);
+		}
+		else if(p_node_1->data.sn == p_node_2->data.sn)
+		{
+				conn_handle = choose_one_node_to_disconnect(p_mns_control, p_node_1, p_node_2);
+		}
+		
+		
+		if((conn_handle != BLE_CONN_HANDLE_INVALID) && (p_mns_control->disc_ongoing == false))
+		{
+				p_mns_control->disc_ongoing = true;
+			  NRF_LOG_INFO("disconnect the node conn_handle = %d", conn_handle);
+		}
+		return 0;
+}
+
+
 /**@brief Function for exchange the data between each node
  *
  * @param[in] 
@@ -265,6 +332,7 @@ uint32_t mns_control_udpate_node(mns_control_t* p_mns_control, uint16_t conn_han
 	  if(p_node != NULL)
 		{
 				p_node->update_flag = 1;
+				p_node->ready_flag = 1;
 				memcpy(&(p_node->data), data, sizeof(ble_mnss_data_t)); 
 		}
 		/*
@@ -300,6 +368,7 @@ uint16_t mns_control_if_node_connected(mns_control_t* p_mns_control, const ble_g
 		
 		return ret;
 }
+
 
 
 /**@brief Function for synchronize the counter between each node

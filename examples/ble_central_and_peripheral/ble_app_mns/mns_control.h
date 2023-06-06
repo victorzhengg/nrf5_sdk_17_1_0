@@ -85,6 +85,7 @@ typedef struct
 		ble_mnss_data_t       data;
 		uint8_t               update_flag;
 		uint8_t               central_flag;
+		uint8_t               ready_flag;
 } mns_node_t;
 
 typedef struct
@@ -94,6 +95,7 @@ typedef struct
 		ble_mnss_c_t*     p_central_service;
 	  ble_mnss_data_t   local_data;
 		mns_node_t        remote_node[MNS_MAX_NODE_NUM];
+		bool              disc_ongoing;
 } mns_control_t;
 
 
