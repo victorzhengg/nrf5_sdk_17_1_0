@@ -301,6 +301,36 @@ uint16_t mns_control_if_node_connected(mns_control_t* p_mns_control, const ble_g
 		return ret;
 }
 
+
+/**@brief Function for synchronize the counter between each node
+ *
+ * @param[in] 
+ */
+void mns_control_display_nodes(mns_control_t* p_mns_control)
+{
+		uint16_t index;
+		mns_node_t* p_node;
+
+		NRF_LOG_INFO("total_connection = %d", p_mns_control->total_connection);
+	  for(index=0;index<MNS_MAX_NODE_NUM;index++)
+    {
+				p_node = &p_mns_control->remote_node[index];
+				NRF_LOG_INFO("node[%d]:", index);
+			  NRF_LOG_INFO("conn_handle = %d", p_node->conn_handle);
+				NRF_LOG_HEXDUMP_INFO(&p_node->peer_addr.addr, 6);
+			  if(p_node->central_flag == 1)
+				{
+						NRF_LOG_INFO("role = central");
+				}
+				else
+				{
+						NRF_LOG_INFO("role = periphral");
+				}
+				NRF_LOG_INFO("sn = %X", p_node->data.sn);
+				NRF_LOG_INFO("cnt = %X", p_node->data.cnt);
+				NRF_LOG_INFO("period = %d", p_node->data.period);
+		}	
+}
 /**
  * @}
  */

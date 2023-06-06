@@ -754,7 +754,7 @@ static void button_event_handler(uint8_t pin_no, uint8_t button_action)
         case BSP_BUTTON_3:
 				    if(button_action == 0)
 						{
-								NRF_LOG_INFO("button_event_handler: BSP_BUTTON_3");
+								mns_control_display_nodes(&m_mns_control);
 						}
             break;
 						

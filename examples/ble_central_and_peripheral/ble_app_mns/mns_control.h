@@ -157,6 +157,13 @@ uint16_t mns_control_if_node_connected(mns_control_t* p_mns_control, const ble_g
  */
 uint32_t mns_control_udpate_node(mns_control_t* p_mns_control, uint16_t conn_handle, ble_mnss_data_t* data);
 
+
+/**@brief Function for synchronize the counter between each node
+ *
+ * @param[in] 
+ */
+void mns_control_display_nodes(mns_control_t* p_mns_control);
+	
 #ifdef __cplusplus
 }
 #endif
