@@ -118,6 +118,7 @@ typedef struct
 struct ble_mnss_data_s
 {
     uint32_t sn; /**< serial number */
+		uint32_t device_sn; /**< serial number */
 	  uint32_t cnt; /**< counter value*/
 		uint32_t period; /**< period value*/
 };

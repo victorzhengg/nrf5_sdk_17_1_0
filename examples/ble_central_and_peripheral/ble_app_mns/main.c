@@ -137,7 +137,7 @@ static uint16_t m_conn_handle[NRF_SDH_BLE_PERIPHERAL_LINK_COUNT] = {0};         
 
 static uint8_t sync_enable_flag = 0;															
 static mns_control_t 	m_mns_control;
-
+static uint32_t local_cnt = 0;
 static uint8_t m_adv_handle = BLE_GAP_ADV_SET_HANDLE_NOT_SET;                   /**< Advertising handle used to identify an advertising set. */
 static uint8_t m_enc_advdata[BLE_GAP_ADV_SET_DATA_SIZE_MAX];                    /**< Buffer for storing an encoded advertising set. */
 static uint8_t m_enc_scan_response_data[BLE_GAP_ADV_SET_DATA_SIZE_MAX];         /**< Buffer for storing an encoded scan data. */
@@ -834,15 +834,32 @@ static void disconnect_delay_timer_handler(void * p_context)
 static void mns_timer_handler(void * p_context)
 {	
 	  uint32_t ret;
+		uint32_t error;
 	
 		if(sync_enable_flag == 1)
 		{
 				mns_control_synchronize_with_node(&m_mns_control);
+			
+				if(local_cnt > m_mns_control.local_data.cnt)
+				{
+						error = local_cnt - m_mns_control.local_data.cnt;
+				}
+				else
+				{
+						error = m_mns_control.local_data.cnt - local_cnt;
+				}
+				
+				if(error > MNS_CONTROL_ERROR_THRESHOLD)
+				{
+						local_cnt = m_mns_control.local_data.cnt;
+				}
 		}
 		
-		m_mns_control.local_data.cnt++;
+
 		
-		if((m_mns_control.local_data.cnt % m_mns_control.local_data.period) == 0)
+		local_cnt++;
+		
+		if((local_cnt % m_mns_control.local_data.period) == 0)
 		{
 				bsp_board_led_on(MNSS_LED);
 				app_timer_start(m_led_delay_timer, LED_ON_DELAY, NULL);
@@ -855,6 +872,8 @@ static void mns_timer_handler(void * p_context)
 		{
 				app_timer_start(m_disconnect_delay_timer, MNS_DISCONNECT_DELAY, NULL);	
 		}
+		
+		m_mns_control.local_data.cnt = local_cnt;
 }
 
 /*
@@ -1121,7 +1140,7 @@ int main(void)
 		scan_start();
     advertising_start();
 		
-		NRF_LOG_INFO("Multi Node Synchronize example started. SN: %X", m_mns_control.local_data.sn);
+		NRF_LOG_INFO("Multi Node Synchronize example started. SN: %X", m_mns_control.local_data.device_sn);
     // Enter main loop.
     for (;;)
     {

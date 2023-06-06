@@ -71,7 +71,8 @@ mns_node_t* mns_control_init(mns_control_t* p_mns_control,
 	  p_mns_control->p_peripheral_service = p_peripheral_service;
 	  p_mns_control->p_central_service = p_central_service;
 	
-		p_mns_control->local_data.sn = *FICR_DEVICE_ADDR;
+		p_mns_control->local_data.device_sn = *FICR_DEVICE_ADDR;
+		p_mns_control->local_data.sn = p_mns_control->local_data.device_sn;
 		p_mns_control->local_data.period = MNS_CONTROL_LED_PERIOD;
 	
 		for(index=0;index<MNS_MAX_NODE_NUM;index++)
@@ -170,14 +171,13 @@ uint32_t mns_control_delete_node(mns_control_t* p_mns_control, uint16_t conn_han
  */
 uint32_t mns_control_synchronize_with_node(mns_control_t* p_mns_control)
 {	
-		uint32_t error;
 		ble_mnss_data_t* p_remote_data;
 		ble_mnss_data_t* p_local_data = &(p_mns_control->local_data);
 		uint16_t index;
 		uint32_t current_sn;
 		uint32_t current_cnt;
 	
-		current_sn = p_local_data->sn;
+		current_sn = p_local_data->device_sn;
 		current_cnt = p_local_data->cnt;
 	
 	  for(index=0;index<MNS_MAX_NODE_NUM;index++)
@@ -196,19 +196,8 @@ uint32_t mns_control_synchronize_with_node(mns_control_t* p_mns_control)
 		
 		if(p_local_data->sn > current_sn)
 		{
-				if(p_local_data->cnt > current_cnt)
-				{
-						error = p_local_data->cnt - current_cnt;
-				}
-				else
-				{
-						error = current_cnt - p_local_data->cnt;
-				}
-				
-				if(error > MNS_CONTROL_ERROR_THRESHOLD)
-				{
-						p_local_data->cnt = current_cnt;
-				}
+				p_local_data->sn = current_sn;
+				p_local_data->cnt = current_cnt;
 		}
 		return 0;
 }
@@ -224,7 +213,7 @@ static uint16_t choose_one_node_to_disconnect(mns_control_t* p_mns_control, mns_
 				return conn_handle;
 		}
 	
-		if(p_mns_control->local_data.sn > p_node_x->data.sn)
+		if(p_mns_control->local_data.device_sn > p_node_x->data.device_sn)
 		{
 				if(p_node_x->central_flag == 0)
 				{
@@ -258,15 +247,15 @@ uint32_t mns_control_redundant_connection_handle(mns_control_t* p_mns_control)
 	  mns_node_t* p_node_2 = &p_mns_control->remote_node[2];
 
 		/*compare the sn of each node and low priority node act the gatt client role */		
-	  if(p_node_0->data.sn == p_node_1->data.sn)
+	  if(p_node_0->data.device_sn == p_node_1->data.device_sn)
 		{
 				conn_handle = choose_one_node_to_disconnect(p_mns_control, p_node_0, p_node_1);
 		}
-		else if(p_node_0->data.sn == p_node_2->data.sn)
+		else if(p_node_0->data.device_sn == p_node_2->data.device_sn)
 		{
 				conn_handle = choose_one_node_to_disconnect(p_mns_control, p_node_0, p_node_2);
 		}
-		else if(p_node_1->data.sn == p_node_2->data.sn)
+		else if(p_node_1->data.device_sn == p_node_2->data.device_sn)
 		{
 				conn_handle = choose_one_node_to_disconnect(p_mns_control, p_node_1, p_node_2);
 		}
