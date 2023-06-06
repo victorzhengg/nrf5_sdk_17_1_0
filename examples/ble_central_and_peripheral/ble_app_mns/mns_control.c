@@ -174,6 +174,11 @@ uint32_t mns_control_synchronize_with_node(mns_control_t* p_mns_control)
 		ble_mnss_data_t* p_remote_data;
 		ble_mnss_data_t* p_local_data = &(p_mns_control->local_data);
 		uint16_t index;
+		uint32_t current_sn;
+		uint32_t current_cnt;
+	
+		current_sn = p_local_data->sn;
+		current_cnt = p_local_data->cnt;
 	
 	  for(index=0;index<MNS_MAX_NODE_NUM;index++)
 		{						
@@ -181,22 +186,27 @@ uint32_t mns_control_synchronize_with_node(mns_control_t* p_mns_control)
 			  if(p_mns_control->remote_node[index].update_flag == 1)
 				{
 						p_mns_control->remote_node[index].update_flag = 0;
-						if(p_local_data->sn > p_remote_data->sn)  /*small SN is higher priority*/
+						if(current_sn > p_remote_data->sn)  /*small SN is higher priority*/
 						{
-								if(p_local_data->cnt > p_remote_data->cnt)
-								{
-										error = p_local_data->cnt - p_remote_data->cnt;
-								}
-								else
-								{
-										error = p_remote_data->cnt - p_local_data->cnt;
-								}
-								
-								if(error > MNS_CONTROL_ERROR_THRESHOLD)
-								{
-										p_local_data->cnt = p_remote_data->cnt;
-								}
+								current_cnt = p_remote_data->cnt;
 						}						
+				}
+		}
+		
+		if(p_local_data->sn > current_sn)
+		{
+				if(p_local_data->cnt > current_cnt)
+				{
+						error = p_local_data->cnt - current_cnt;
+				}
+				else
+				{
+						error = current_cnt - p_local_data->cnt;
+				}
+				
+				if(error > MNS_CONTROL_ERROR_THRESHOLD)
+				{
+						p_local_data->cnt = current_cnt;
 				}
 		}
 		return 0;
