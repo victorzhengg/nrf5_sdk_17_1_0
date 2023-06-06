@@ -2,10 +2,11 @@
 
 This code show how to synchronize the timer between multi nodes. 
 1. each node have total three link. It include a central connection and two peripheral connection
-2. button 1 enable the synchronize
-3. button 2 disable the synchronize
-4. button 4 show the information of node which connect to current node
-5. LED1 turn on if current node connect other node as a gatt client, GAP role is central
-6. LED2 turn on if current node is connected by other node. current node work as a gatt server, GAP role is peripheral. 
-7. LED3 turn on if current node is connected by other node. current node work as a gatt server, GAP role is peripheral. 
-8. LED4 blinky according the period define by macro MNS_CONTROL_LED_PERIOD
+2. The BLE service is a customized service named multi node synchronize service.
+3. button 1 enable the synchronize
+4. button 2 disable the synchronize
+5. button 4 show the information of node which connect to current node
+6. LED1 turn on if current node connect other node as a gatt client, GAP role is central
+7. LED2 turn on if current node is connected by other node. current node work as a gatt server, GAP role is peripheral. 
+8. LED3 turn on if current node is connected by other node. current node work as a gatt server, GAP role is peripheral. 
+9. LED4 blinky according the period define by macro MNS_CONTROL_LED_PERIOD
