@@ -110,7 +110,7 @@
 
 #define NRF_BLE_GQ_QUEUE_SIZE 4
 #define MNS_TIMER_PERIOD                    APP_TIMER_TICKS(20)       /*multi node synchronize */
-#define MNS_CONNECT_CHECK_TIMER_PERIOD      APP_TIMER_TICKS(1000)       /*multi node synchronize */
+#define MNS_DISCONNECT_DELAY                APP_TIMER_TICKS(1000)       /*multi node synchronize */
 #define MNSS_THRESHOLD   5
 #define LED_ON_DELAY     APP_TIMER_TICKS(100)           /*duty of led on */
 
@@ -128,7 +128,7 @@ NRF_BLE_SCAN_DEF(m_scan);
 
 APP_TIMER_DEF(m_mns_timer);
 APP_TIMER_DEF(m_led_delay_timer);
-APP_TIMER_DEF(m_connect_check_timer);
+APP_TIMER_DEF(m_disconnect_delay_timer);
 
 
 
@@ -822,13 +822,19 @@ static void led_delay_timer_handler(void * p_context)
 		bsp_board_led_off(MNSS_LED);
 }
 
-static void connect_check_timer_handler(void * p_context)
+static void disconnect_delay_timer_handler(void * p_context)
 {
-		//NRF_LOG_INFO("connect_check_timer_handler");
+		if(m_mns_control.disc_ongoing == 1)
+		{
+				m_mns_control.disc_ongoing = 0;
+				NRF_LOG_INFO("Disconnect process finished");
+		}			
 }
 
 static void mns_timer_handler(void * p_context)
 {	
+	  uint32_t ret;
+	
 		if(sync_enable_flag == 1)
 		{
 				mns_control_synchronize_with_node(&m_mns_control);
@@ -843,6 +849,12 @@ static void mns_timer_handler(void * p_context)
 		}
 
 		mns_control_communicate_with_node(&m_mns_control);
+		
+		ret = mns_control_redundant_connection_handle(&m_mns_control);
+		if(ret != 0) /* disconnect process is ongoing*/
+		{
+				app_timer_start(m_disconnect_delay_timer, MNS_DISCONNECT_DELAY, NULL);	
+		}
 }
 
 /*
@@ -1079,11 +1091,10 @@ int main(void)
     timers_init();
 		app_timer_create(&m_mns_timer, APP_TIMER_MODE_REPEATED, mns_timer_handler);
 	  app_timer_create(&m_led_delay_timer, APP_TIMER_MODE_SINGLE_SHOT, led_delay_timer_handler);
-		app_timer_create(&m_connect_check_timer, APP_TIMER_MODE_REPEATED, connect_check_timer_handler);
+		app_timer_create(&m_disconnect_delay_timer, APP_TIMER_MODE_SINGLE_SHOT, disconnect_delay_timer_handler);
 	
 	
 		app_timer_start(m_mns_timer, MNS_TIMER_PERIOD, NULL);
-		app_timer_start(m_connect_check_timer, MNS_CONNECT_CHECK_TIMER_PERIOD, NULL);	
 	
     buttons_init();
 		err_code = app_button_enable();

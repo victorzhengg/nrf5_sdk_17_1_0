@@ -250,7 +250,8 @@ static uint16_t choose_one_node_to_disconnect(mns_control_t* p_mns_control, mns_
  */
 uint32_t mns_control_redundant_connection_handle(mns_control_t* p_mns_control)
 {
-		uint16_t index;
+		uint32_t err_code;
+		uint32_t ret = 0;
 	  uint16_t conn_handle = BLE_CONN_HANDLE_INVALID;
 		mns_node_t* p_node_0 = &p_mns_control->remote_node[0];
 		mns_node_t* p_node_1 = &p_mns_control->remote_node[1];
@@ -274,9 +275,11 @@ uint32_t mns_control_redundant_connection_handle(mns_control_t* p_mns_control)
 		if((conn_handle != BLE_CONN_HANDLE_INVALID) && (p_mns_control->disc_ongoing == false))
 		{
 				p_mns_control->disc_ongoing = true;
-			  NRF_LOG_INFO("disconnect the node conn_handle = %d", conn_handle);
+				err_code = sd_ble_gap_disconnect(conn_handle, BLE_HCI_REMOTE_USER_TERMINATED_CONNECTION);
+			  ret = 1;
+				NRF_LOG_INFO("disconnect the node conn_handle = %d, error:%d", conn_handle, err_code);			
 		}
-		return 0;
+		return ret;
 }
 
 

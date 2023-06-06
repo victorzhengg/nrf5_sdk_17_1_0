@@ -135,6 +135,12 @@ uint32_t mns_control_synchronize_with_node(mns_control_t* p_mns_control);
 uint32_t mns_control_communicate_with_node(mns_control_t* p_mns_control);
 
 
+/**@brief Function for exchange the data between each node
+ *
+ * @param[in] 
+ */
+uint32_t mns_control_redundant_connection_handle(mns_control_t* p_mns_control);
+
 
 /**@brief Function for initialize the globle variables m_mns_control
  *
