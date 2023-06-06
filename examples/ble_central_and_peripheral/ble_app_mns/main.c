@@ -739,7 +739,7 @@ static void button_event_handler(uint8_t pin_no, uint8_t button_action)
         case BSP_BUTTON_1:
 				    if(button_action == 0)
 						{
-								NRF_LOG_INFO("enable the synchronize between multi nodes");
+								NRF_LOG_INFO("disable the synchronize between multi nodes");
 								sync_enable_flag = 0;
 						}
             break;
