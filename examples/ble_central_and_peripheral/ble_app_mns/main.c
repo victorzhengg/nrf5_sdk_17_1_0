@@ -1074,7 +1074,7 @@ int main(void)
     leds_init();
 	  
 		
-		NRF_LOG_INFO("Multi Node Synchronize example started. SN: %X", m_mns_control.local_data.sn);
+		
 	
     timers_init();
 		app_timer_create(&m_mns_timer, APP_TIMER_MODE_REPEATED, mns_timer_handler);
@@ -1109,7 +1109,8 @@ int main(void)
     
 		scan_start();
     advertising_start();
-
+		
+		NRF_LOG_INFO("Multi Node Synchronize example started. SN: %X", m_mns_control.local_data.sn);
     // Enter main loop.
     for (;;)
     {

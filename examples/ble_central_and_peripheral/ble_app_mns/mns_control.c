@@ -189,6 +189,7 @@ uint32_t mns_control_synchronize_with_node(mns_control_t* p_mns_control)
 						if(current_sn > p_remote_data->sn)  /*small SN is higher priority*/
 						{
 								current_cnt = p_remote_data->cnt;
+								current_sn = p_remote_data->sn;
 						}						
 				}
 		}
