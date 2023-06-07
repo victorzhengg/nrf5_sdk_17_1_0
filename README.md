@@ -1,5 +1,4 @@
 # nrf5_sdk_17_1_0
-
 This code show how to synchronize the timer between multi nodes. 
 1. each node have total three link. It include a central connection and two peripheral connection
 2. The BLE service is a customized service named multi node synchronize service.
