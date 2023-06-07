@@ -1140,7 +1140,7 @@ int main(void)
 		scan_start();
     advertising_start();
 		
-		NRF_LOG_INFO("Multi Node Synchronize example started. SN: %X", m_mns_control.local_data.device_sn);
+		NRF_LOG_INFO("Multi Node Synchronize example started. SN:0x%X", m_mns_control.local_data.device_sn);
     // Enter main loop.
     for (;;)
     {

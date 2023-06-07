@@ -224,18 +224,18 @@ uint32_t ble_mnss_write_data(ble_mnss_c_t * p_ble_mnss_c, ble_mnss_data_t* p_dat
         return NRF_ERROR_INVALID_STATE;
     }
 		
-		static uint8_t write_buf[sizeof(ble_gattc_write_params_t)];
+		static uint8_t write_buf[sizeof(ble_mnss_data_t)];
 
 		// Retrieve allocated data.
 		ble_gattc_write_params_t write_params;
 		memset(&write_params, 0, sizeof(ble_gattc_write_params_t));
 		
 		write_params.p_value = write_buf;
-		memcpy(write_buf, p_data, sizeof(ble_gattc_write_params_t));
+		memcpy(write_buf, p_data, sizeof(ble_mnss_data_t));
 		
 		write_params.write_op = BLE_GATT_OP_WRITE_CMD;
 		write_params.handle = p_ble_mnss_c->peer_mnss_db.data_write_handle;
-		write_params.len = sizeof(ble_gattc_write_params_t);
+		write_params.len = sizeof(ble_mnss_data_t);
 
 		error = sd_ble_gattc_write(p_ble_mnss_c->conn_handle, &write_params);
 		//NRF_LOG_INFO("sd_ble_gattc_write: error=%d", error);

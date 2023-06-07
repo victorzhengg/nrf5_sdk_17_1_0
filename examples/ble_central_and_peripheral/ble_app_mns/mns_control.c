@@ -194,11 +194,9 @@ uint32_t mns_control_synchronize_with_node(mns_control_t* p_mns_control)
 				}
 		}
 		
-		if(p_local_data->sn > current_sn)
-		{
-				p_local_data->sn = current_sn;
-				p_local_data->cnt = current_cnt;
-		}
+		p_local_data->sn = current_sn;
+		p_local_data->cnt = current_cnt;
+		
 		return 0;
 }
 
@@ -372,7 +370,17 @@ void mns_control_display_nodes(mns_control_t* p_mns_control)
 		uint16_t index;
 		mns_node_t* p_node;
 
-		NRF_LOG_INFO("total_connection = %d", p_mns_control->total_connection);
+	
+		NRF_LOG_INFO("*********************************************************");
+		NRF_LOG_INFO("total_connection = %d\n", p_mns_control->total_connection);
+	
+		;
+		NRF_LOG_INFO("local data:");
+		NRF_LOG_INFO("sn = %X", p_mns_control->local_data.sn);
+		NRF_LOG_INFO("device sn = %X", p_mns_control->local_data.device_sn);
+		NRF_LOG_INFO("cnt = %X", p_mns_control->local_data.cnt);
+		NRF_LOG_INFO("period = %d\n", p_mns_control->local_data.period);
+	
 	  for(index=0;index<MNS_MAX_NODE_NUM;index++)
     {
 				p_node = &p_mns_control->remote_node[index];
@@ -387,9 +395,11 @@ void mns_control_display_nodes(mns_control_t* p_mns_control)
 				{
 						NRF_LOG_INFO("role = periphral");
 				}
+				NRF_LOG_INFO("ready_flag = %d", p_node->ready_flag)
 				NRF_LOG_INFO("sn = %X", p_node->data.sn);
+				NRF_LOG_INFO("device sn = %X", p_node->data.device_sn);
 				NRF_LOG_INFO("cnt = %X", p_node->data.cnt);
-				NRF_LOG_INFO("period = %d", p_node->data.period);
+				NRF_LOG_INFO("period = %d\n", p_node->data.period);
 		}	
 }
 /**
